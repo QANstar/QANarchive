@@ -356,6 +356,35 @@ input, textarea, select { font-family: inherit; color: var(--ink); }
 .prompt-block-text {
   font-size: 13.5px; line-height: 1.7; white-space: pre-wrap; word-break: break-word;
 }
+
+/* 图标按钮 + tooltip */
+.icon-btn-wrap {
+  position: relative; display: inline-flex;
+}
+.icon-btn-wrap::after {
+  content: attr(data-tooltip);
+  position: absolute; bottom: calc(100% + 7px); left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: rgba(29, 29, 31, 0.88); color: #fff;
+  font-size: 11.5px; padding: 4px 9px; border-radius: 6px; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: all .16s ease;
+  z-index: 20;
+}
+.icon-btn-wrap:hover::after {
+  opacity: 1; transform: translateX(-50%) translateY(0);
+}
+.icon-btn {
+  width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--hairline-strong);
+  background: #fff; color: var(--ink-3);
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all .16s;
+}
+.icon-btn:hover {
+  color: var(--accent); border-color: var(--accent); background: var(--accent-soft);
+}
+.icon-btn.copied {
+  color: #fff; background: var(--accent); border-color: var(--accent);
+}
 .workflow-box {
   max-height: 260px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 12px; line-height: 1.5; background: #fafafa;

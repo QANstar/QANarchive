@@ -116,11 +116,11 @@ export default function WorkDetail() {
           {work.workflowJson && (
             <div className="panel-section">
               <h3>ComfyUI 工作流</h3>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                 <button className="btn btn-plain btn-sm" onClick={() => setWorkflowOpen(!workflowOpen)}>
                   {workflowOpen ? '收起' : '查看 JSON'}
                 </button>
-                <CopyButton inline text={work.workflowJson} label="复制 JSON" />
+                <CopyButton text={work.workflowJson} label="复制 JSON" />
                 <button className="btn btn-plain btn-sm" onClick={downloadWorkflow}>下载</button>
               </div>
               {workflowOpen && (

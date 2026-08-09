@@ -28,6 +28,7 @@ export default function WorkEdit() {
   const [msg, setMsg] = useState('');
   const [loaded, setLoaded] = useState(!isEdit);
   const workIdRef = useRef<string | null>(id ?? null);
+  const jsonFileRef = useRef<HTMLInputElement>(null);
 
   // 加载角色/部件列表
   useEffect(() => {
@@ -70,6 +71,25 @@ export default function WorkEdit() {
     const fd = new FormData();
     pendingFiles.forEach((f) => fd.append('files', f));
     await api.post(`/works/${workId}/media`, fd);
+  };
+
+  const handleJsonFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1024 * 1024) {
+      setMsg('工作流 JSON 超过 1MB 限制');
+      return;
+    }
+    try {
+      const text = await file.text();
+      JSON.parse(text); // 校验是否为合法 JSON
+      setWorkflowJson(text);
+      setMsg('');
+    } catch {
+      setMsg('文件不是有效的 JSON');
+    } finally {
+      if (jsonFileRef.current) jsonFileRef.current.value = '';
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -196,8 +216,25 @@ export default function WorkEdit() {
 
         <div className="field">
           <label>ComfyUI 工作流 JSON(可选)</label>
-          <textarea className="textarea code" value={workflowJson} onChange={(e) => setWorkflowJson(e.target.value)} placeholder='{"nodes":[...],"links":[...]}' />
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <button type="button" className="btn btn-plain btn-sm" onClick={() => jsonFileRef.current?.click()}>
+              导入 JSON 文件
+            </button>
+            {workflowJson && (
+              <button type="button" className="btn btn-plain btn-sm" onClick={() => setWorkflowJson('')}>
+                清空
+              </button>
+            )}
+          </div>
+          <textarea className="textarea code" value={workflowJson} onChange={(e) => setWorkflowJson(e.target.value)} placeholder='导入 .json 文件,或直接粘贴 {"nodes":[...]}' />
           <div className="hint">最大 1MB,保存后可在详情页复制或下载</div>
+          <input
+            ref={jsonFileRef}
+            type="file"
+            accept=".json,application/json"
+            hidden
+            onChange={handleJsonFile}
+          />
         </div>
 
         <div className="field">
