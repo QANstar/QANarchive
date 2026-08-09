@@ -20,6 +20,7 @@ export default function Home() {
   const tab = (params.get('tab') as Tab) || 'works';
   const search = params.get('q') ?? '';
   const selectedTags = (params.get('tags') ?? '').split(',').filter(Boolean);
+  const mine = params.get('mine') === '1';
 
   const [hotTags, setHotTags] = useState<HotTag[]>([]);
   const [items, setItems] = useState<AnyItem[]>([]);
@@ -51,6 +52,7 @@ export default function Home() {
           tab,
           search: search || undefined,
           tags: selectedTags.length ? selectedTags.join(',') : undefined,
+          mine: mine ? true : undefined,
           page: 1,
           pageSize: 20,
         },
@@ -87,6 +89,7 @@ export default function Home() {
           search: search || undefined,
           tags: selectedTags.length ? selectedTags.join(',') : undefined,
           category: category || undefined,
+          mine: mine ? true : undefined,
           page: next,
           pageSize: 20,
         },
@@ -107,7 +110,7 @@ export default function Home() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [page, tab, search, selectedTags, category]);
+  }, [page, tab, search, selectedTags, category, mine]);
 
   const syncUrl = (t: Tab, tags: string[], s: string) => {
     const p = new URLSearchParams();
@@ -139,6 +142,7 @@ export default function Home() {
           search: search || undefined,
           tags: selectedTags.length ? selectedTags.join(',') : undefined,
           category: next || undefined,
+          mine: mine ? true : undefined,
           page: 1,
           pageSize: 20,
         },
@@ -152,9 +156,10 @@ export default function Home() {
       .finally(() => setLoading(false));
   };
 
-  const clearSearch = () => {
+  const clearFilter = () => {
     const p = new URLSearchParams(params);
     p.delete('q');
+    p.delete('mine');
     setParams(p, { replace: true });
   };
 
@@ -187,11 +192,12 @@ export default function Home() {
           )}
         </div>
 
-        {search && (
-          <div style={{ marginBottom: 16, fontSize: 14, color: 'var(--ink-3)' }}>
-            搜索 “<b style={{ color: 'var(--ink)' }}>{search}</b>” 的结果:
-            <button className="btn btn-plain btn-sm" style={{ marginLeft: 10 }} onClick={clearSearch}>
-              清除
+        {(search || mine) && (
+          <div style={{ marginBottom: 16, fontSize: 14, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {search && <>搜索 “<b style={{ color: 'var(--ink)' }}>{search}</b>” 的结果</>}
+            {mine && <b style={{ color: 'var(--accent)' }}>只看我创建的内容</b>}
+            <button className="btn btn-sm" onClick={clearFilter}>
+              清除筛选
             </button>
           </div>
         )}

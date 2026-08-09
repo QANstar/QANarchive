@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Routes, Route, NavLink, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext';
 import Home from './pages/Home';
@@ -13,11 +13,29 @@ import Auth from './pages/Auth';
 function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [q, setQ] = React.useState('');
+  const [q, setQ] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // 点击菜单外部关闭
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
     navigate(q.trim() ? `/?q=${encodeURIComponent(q.trim())}` : '/');
+  };
+
+  const go = (path: string) => {
+    setMenuOpen(false);
+    navigate(path);
   };
 
   return (
@@ -42,16 +60,48 @@ function Navbar() {
         </form>
         <nav className="nav-actions">
           {user ? (
-            <>
-              <Link to="/work/new" className="btn btn-primary btn-sm">＋ 新建作品</Link>
-              <div className="avatar ring" title={user.userName}>
-                {user.userName.slice(0, 1).toUpperCase()}
-              </div>
-              <button className="btn btn-plain btn-sm" onClick={logout}>退出</button>
-            </>
+            <div className="user-menu" ref={menuRef}>
+              <button
+                type="button"
+                className="avatar-wrap"
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+              >
+                <div className="avatar ring">{user.userName.slice(0, 1).toUpperCase()}</div>
+                <span>{user.userName}</span>
+                <svg
+                  width="10" height="10" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  style={{ transform: menuOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+
+              {menuOpen && (
+                <div className="user-dropdown" role="menu">
+                  <div className="user-dropdown-header">
+                    <div className="user-dropdown-name">{user.userName}</div>
+                    <div className="user-dropdown-sub">@{user.account}</div>
+                  </div>
+                  <div className="user-dropdown-group">
+                    <button role="menuitem" onClick={() => go('/work/new')}>＋ 新建作品</button>
+                    <button role="menuitem" onClick={() => go('/character/new')}>＋ 新建角色</button>
+                    <button role="menuitem" onClick={() => go('/part/new')}>＋ 新建部件</button>
+                  </div>
+                  <div className="user-dropdown-group">
+                    <button role="menuitem" onClick={() => go('/?mine=1')}>我的内容</button>
+                  </div>
+                  <div className="user-dropdown-group">
+                    <button role="menuitem" className="danger" onClick={logout}>退出登录</button>
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <>
-              <NavLink to="/login" className="btn btn-plain btn-sm">登录</NavLink>
+              <NavLink to="/login" className="btn btn-sm">登录</NavLink>
               <NavLink to="/register" className="btn btn-primary btn-sm">注册</NavLink>
             </>
           )}

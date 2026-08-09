@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using QANgalleryServer.Data;
 using QANgalleryServer.DTOs;
@@ -11,18 +12,27 @@ public static class GalleryEndpoints
     {
         var group = app.MapGroup("/api/gallery");
 
-        // GET /api/gallery?tab=works|characters|parts&search=&tags=&category=&page=&pageSize=
+        // GET /api/gallery?tab=works|characters|parts&search=&tags=&category=&mine=&page=&pageSize=
         group.MapGet("/", async (
+            HttpContext http,
             AppDbContext db,
             string? tab,
             string? search,
             string? tags,
             string? category,
+            bool mine = false,
             int page = 1,
             int pageSize = 20) =>
         {
             page = Math.Max(1, page);
             pageSize = Math.Clamp(pageSize, 1, 50);
+
+            string? userId = null;
+            if (mine)
+            {
+                userId = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (userId == null) return Results.Unauthorized();
+            }
 
             var tagList = (tags ?? "")
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -32,21 +42,24 @@ public static class GalleryEndpoints
 
             return tab switch
             {
-                "characters" => await BrowseCharactersAsync(db, search, tagList, page, pageSize),
-                "parts" => await BrowsePartsAsync(db, search, tagList, category, page, pageSize),
-                _ => await BrowseWorksAsync(db, search, tagList, page, pageSize)
+                "characters" => await BrowseCharactersAsync(db, search, tagList, userId, page, pageSize),
+                "parts" => await BrowsePartsAsync(db, search, tagList, category, userId, page, pageSize),
+                _ => await BrowseWorksAsync(db, search, tagList, userId, page, pageSize)
             };
         });
     }
 
     private static async Task<IResult> BrowseWorksAsync(
-        AppDbContext db, string? search, List<string> tagList, int page, int pageSize)
+        AppDbContext db, string? search, List<string> tagList, string? userId, int page, int pageSize)
     {
         var query = db.Works
             .Include(w => w.User)
             .Include(w => w.MediaItems)
             .Include(w => w.WorkTags).ThenInclude(wt => wt.Tag)
             .AsQueryable();
+
+        if (!string.IsNullOrEmpty(userId))
+            query = query.Where(w => w.UserId == userId);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -74,12 +87,15 @@ public static class GalleryEndpoints
     }
 
     private static async Task<IResult> BrowseCharactersAsync(
-        AppDbContext db, string? search, List<string> tagList, int page, int pageSize)
+        AppDbContext db, string? search, List<string> tagList, string? userId, int page, int pageSize)
     {
         var query = db.Characters
             .Include(c => c.CharacterTags).ThenInclude(ct => ct.Tag)
             .Include(c => c.CharacterWorks)
             .AsQueryable();
+
+        if (!string.IsNullOrEmpty(userId))
+            query = query.Where(c => c.UserId == userId);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -119,12 +135,15 @@ public static class GalleryEndpoints
     }
 
     private static async Task<IResult> BrowsePartsAsync(
-        AppDbContext db, string? search, List<string> tagList, string? category, int page, int pageSize)
+        AppDbContext db, string? search, List<string> tagList, string? category, string? userId, int page, int pageSize)
     {
         var query = db.Parts
             .Include(p => p.PartTags).ThenInclude(pt => pt.Tag)
             .Include(p => p.WorkParts)
             .AsQueryable();
+
+        if (!string.IsNullOrEmpty(userId))
+            query = query.Where(p => p.UserId == userId);
 
         if (!string.IsNullOrWhiteSpace(category))
         {
