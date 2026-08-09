@@ -29,14 +29,14 @@ export default function Waterfall({ hasMore, loading, onLoadMore, children, empt
   return (
     <div>
       {React.Children.count(children) === 0 && !loading ? (
-        empty ?? <div className="empty"><div className="empty-emoji">🌸</div><p>这里还没有内容</p></div>
+        empty ?? <div className="empty"><div className="empty-emoji">✦</div><p>这里还没有内容</p></div>
       ) : (
         <div className="waterfall stagger">{children}</div>
       )}
       <div ref={sentinelRef} className="sentinel" />
       {loading && <div className="loading-row"><div className="spinner" /></div>}
       {!hasMore && React.Children.count(children) > 0 && (
-        <div className="loading-row">— 已经到底啦 —</div>
+        <div className="loading-row">— 已加载全部内容 —</div>
       )}
     </div>
   );

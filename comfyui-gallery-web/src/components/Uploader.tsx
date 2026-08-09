@@ -25,7 +25,13 @@ export default function Uploader({ accept, multiple = true, hint, onFiles }: Upl
       onDragLeave={() => setDrag(false)}
       onDrop={(e) => { e.preventDefault(); setDrag(false); pick(e.dataTransfer.files); }}
     >
-      <div className="upload-icon">⬆️</div>
+      <div className="upload-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto' }}>
+          <path d="M12 16V4" />
+          <path d="m6 9 6-6 6 6" />
+          <path d="M4 20h16" />
+        </svg>
+      </div>
       <div>点击选择或拖拽文件到此处</div>
       {hint && <div className="hint">{hint}</div>}
       <input

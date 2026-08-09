@@ -20,7 +20,7 @@ export default function PartDetail() {
       .catch(() => setNotFound(true));
   }, [id]);
 
-  if (notFound) return <div className="container empty"><div className="empty-emoji">😢</div><p>部件不存在</p></div>;
+  if (notFound) return <div className="container empty"><div className="empty-emoji">✦</div><p>部件不存在</p></div>;
   if (!part) return <div className="container loading-row"><div className="spinner" /></div>;
 
   const isOwner = user?.id === part.author.id;
@@ -42,7 +42,7 @@ export default function PartDetail() {
           {part.previewUrl ? (
             <img src={part.previewUrl} alt={part.name} />
           ) : (
-            <div className="grad-ph" style={{ width: '100%', height: '100%', fontSize: 56 }}>🧩</div>
+            <div className="grad-ph" style={{ width: '100%', height: '100%', fontSize: 56 }}>✦</div>
           )}
         </div>
         <div className="side-panel">
@@ -61,27 +61,27 @@ export default function PartDetail() {
           {msg && <div className="toast-msg error">{msg}</div>}
 
           <div className="panel-section">
-            <h3>🧩 提示词片段</h3>
+            <h3>提示词片段</h3>
             <PromptBlock text={part.prompt} label="复制部件 prompt" />
           </div>
 
           {part.intro && (
             <div className="panel-section">
-              <h3>📄 简介</h3>
+              <h3>简介</h3>
               <div style={{ fontSize: 13.5, lineHeight: 1.7 }}>{part.intro}</div>
             </div>
           )}
 
           {part.tags.length > 0 && (
             <div className="panel-section">
-              <h3>🏷️ 标签</h3>
+              <h3>标签</h3>
               <TagChips tags={part.tags} color="pink" />
             </div>
           )}
 
           <div className="panel-section">
-            <h3>🔗 使用情况</h3>
-            <div style={{ fontSize: 13.5, color: 'var(--ink-soft)' }}>
+            <h3>使用情况</h3>
+            <div style={{ fontSize: 13.5, color: 'var(--ink-3)' }}>
               被 {part.usedByCount} 个作品引用 · 创建于 {new Date(part.createdAt).toLocaleDateString('zh-CN')}
             </div>
           </div>

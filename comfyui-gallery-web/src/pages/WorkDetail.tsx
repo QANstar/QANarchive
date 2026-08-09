@@ -26,7 +26,7 @@ export default function WorkDetail() {
   }, [id]);
 
   if (notFound) {
-    return <div className="container empty"><div className="empty-emoji">😢</div><p>作品不存在或已被删除</p></div>;
+    return <div className="container empty"><div className="empty-emoji">✦</div><p>作品不存在或已被删除</p></div>;
   }
   if (!work) return <div className="container loading-row"><div className="spinner" /></div>;
 
@@ -65,7 +65,7 @@ export default function WorkDetail() {
                 <img src={active.url} alt={work.title} />
               )
             ) : (
-              <div style={{ padding: 80, textAlign: 'center', color: 'var(--ink-faint)' }}>
+              <div style={{ padding: 80, textAlign: 'center', color: 'var(--ink-4)' }}>
                 还没有媒体文件
               </div>
             )}
@@ -97,31 +97,31 @@ export default function WorkDetail() {
             )}
           </div>
           <div className="card-sub" style={{ marginBottom: 14 }}>
-            👤 {work.author.name} · 🕒 {new Date(work.createdAt).toLocaleString('zh-CN')}
+            {work.author.name} · {new Date(work.createdAt).toLocaleString('zh-CN')}
           </div>
           {msg && <div className="toast-msg error">{msg}</div>}
 
           <div className="panel-section">
-            <h3>📝 Prompt</h3>
+            <h3>Prompt</h3>
             <PromptBlock text={work.prompt} />
           </div>
 
           {work.intro && (
             <div className="panel-section">
-              <h3>📄 简介</h3>
+              <h3>简介</h3>
               <div style={{ fontSize: 13.5, lineHeight: 1.7, color: 'var(--ink)' }}>{work.intro}</div>
             </div>
           )}
 
           {work.workflowJson && (
             <div className="panel-section">
-              <h3>⚙️ ComfyUI 工作流</h3>
+              <h3>ComfyUI 工作流</h3>
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => setWorkflowOpen(!workflowOpen)}>
+                <button className="btn btn-plain btn-sm" onClick={() => setWorkflowOpen(!workflowOpen)}>
                   {workflowOpen ? '收起' : '查看 JSON'}
                 </button>
                 <CopyButton text={work.workflowJson} label="复制 JSON" />
-                <button className="btn btn-ghost btn-sm" onClick={downloadWorkflow}>下载</button>
+                <button className="btn btn-plain btn-sm" onClick={downloadWorkflow}>下载</button>
               </div>
               {workflowOpen && (
                 <div className="workflow-box">{work.workflowJson}</div>
@@ -131,21 +131,26 @@ export default function WorkDetail() {
 
           {work.tags.length > 0 && (
             <div className="panel-section">
-              <h3>🏷️ 标签</h3>
+              <h3>标签</h3>
               <TagChips tags={work.tags} color="pink" />
             </div>
           )}
 
           {(work.characters.length > 0 || work.parts.length > 0) && (
             <div className="panel-section">
-              <h3>🔗 关联</h3>
+              <h3>关联</h3>
               <div className="link-cards">
                 {work.characters.map((c) => (
                   <Link key={c.id} to={`/character/${c.id}`} className="link-card">
                     {c.previewUrl ? (
                       <img src={c.previewUrl} alt="" />
                     ) : (
-                      <div className="lc-ph">👤</div>
+                      <div className="lc-ph">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                          <circle cx="12" cy="8" r="4" />
+                          <path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" />
+                        </svg>
+                      </div>
                     )}
                     <div>
                       <div className="lc-name">{c.name}</div>
@@ -158,7 +163,13 @@ export default function WorkDetail() {
                     {p.previewUrl ? (
                       <img src={p.previewUrl} alt="" />
                     ) : (
-                      <div className="lc-ph">🧩</div>
+                      <div className="lc-ph">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 3 4 8v8l8 5 8-5V8z" />
+                          <path d="M12 3v8" />
+                          <path d="m4 8 8 3 8-3" />
+                        </svg>
+                      </div>
                     )}
                     <div>
                       <div className="lc-name">{p.name}</div>

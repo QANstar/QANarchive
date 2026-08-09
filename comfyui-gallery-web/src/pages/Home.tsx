@@ -157,67 +157,74 @@ export default function Home() {
   const currentTab = TABS.find((t) => t.key === tab)!;
 
   return (
-    <div className="container fade-in">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 18 }}>
-        <div className="tabs">
-          {TABS.map((t) => (
-            <button key={t.key} className={`tab ${tab === t.key ? 'active' : ''}`} onClick={() => changeTab(t.key)}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-        {user && (
-          <Link to={currentTab.create} className="btn btn-primary btn-sm">
-            ＋ 新建{currentTab.label}
-          </Link>
-        )}
-      </div>
+    <div className="fade-in">
+      {/* Hero */}
+      <section className="hero">
+        <h1>
+          收藏你的 <span className="grad">ComfyUI</span> 创作
+        </h1>
+        <p>作品 · 角色合集 · 提示词部件 —— 集中归档每一次满意生成</p>
+        {!user && <div className="hero-sub">登录后即可开始收藏</div>}
+      </section>
 
-      {search && (
-        <div style={{ marginBottom: 14, fontSize: 14, color: 'var(--ink-soft)' }}>
-          搜索 “<b style={{ color: 'var(--blue-deep)' }}>{search}</b>” 的结果:
-          <button className="btn btn-ghost btn-sm" style={{ marginLeft: 10 }} onClick={clearSearch}>
-            清除
-          </button>
-        </div>
-      )}
-
-      {hotTags.length > 0 && (
-        <div style={{ marginBottom: 22 }}>
-          <div style={{ fontSize: 12.5, color: 'var(--ink-faint)', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>
-            🔥 热门标签
-          </div>
-          <TagChips tags={hotTags.map((t) => t.name)} selected={selectedTags} onToggle={toggleTag} color="pink" />
-        </div>
-      )}
-
-      {tab === 'parts' && categories.length > 0 && (
-        <div style={{ marginBottom: 22 }}>
-          <div style={{ fontSize: 12.5, color: 'var(--ink-faint)', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>
-            🗂️ 分类
-          </div>
-          <div className="chips">
-            {categories.map((c) => (
-              <button
-                key={c}
-                type="button"
-                className={`chip ${category === c ? 'selected' : 'chip-lavender'} selectable`}
-                onClick={() => changeCategory(c)}
-              >
-                {c}
+      <div className="container">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
+          <div className="tabs">
+            {TABS.map((t) => (
+              <button key={t.key} className={`tab ${tab === t.key ? 'active' : ''}`} onClick={() => changeTab(t.key)}>
+                {t.label}
               </button>
             ))}
           </div>
+          {user && (
+            <Link to={currentTab.create} className="btn btn-primary btn-sm">
+              ＋ 新建{currentTab.label}
+            </Link>
+          )}
         </div>
-      )}
 
-      <Waterfall hasMore={hasMore} loading={loading} onLoadMore={loadMore}>
-        {items.map((item) => {
-          if (tab === 'works') return <WorkCard key={item.id} work={item as never} />;
-          if (tab === 'characters') return <CharacterCard key={item.id} character={item as never} />;
-          return <PartCard key={item.id} part={item as never} />;
-        })}
-      </Waterfall>
+        {search && (
+          <div style={{ marginBottom: 16, fontSize: 14, color: 'var(--ink-3)' }}>
+            搜索 “<b style={{ color: 'var(--ink)' }}>{search}</b>” 的结果:
+            <button className="btn btn-plain btn-sm" style={{ marginLeft: 10 }} onClick={clearSearch}>
+              清除
+            </button>
+          </div>
+        )}
+
+        {hotTags.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <div className="section-label">热门标签</div>
+            <TagChips tags={hotTags.map((t) => t.name)} selected={selectedTags} onToggle={toggleTag} color="pink" />
+          </div>
+        )}
+
+        {tab === 'parts' && categories.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <div className="section-label">分类</div>
+            <div className="chips">
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`chip ${category === c ? 'selected' : 'chip-lavender'} selectable`}
+                  onClick={() => changeCategory(c)}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <Waterfall hasMore={hasMore} loading={loading} onLoadMore={loadMore}>
+          {items.map((item) => {
+            if (tab === 'works') return <WorkCard key={item.id} work={item as never} />;
+            if (tab === 'characters') return <CharacterCard key={item.id} character={item as never} />;
+            return <PartCard key={item.id} part={item as never} />;
+          })}
+        </Waterfall>
+      </div>
     </div>
   );
 }

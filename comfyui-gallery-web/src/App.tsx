@@ -24,11 +24,16 @@ function Navbar() {
     <header className="navbar">
       <div className="container navbar-inner">
         <Link to="/" className="logo">
-          <span className="logo-dot" />
+          <span className="logo-mark">◆</span>
           QAN&nbsp;Gallery
         </Link>
         <form className="nav-search" onSubmit={submitSearch}>
-          <span className="search-icon">🔍</span>
+          <span className="search-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+          </span>
           <input
             placeholder="搜索标题 / prompt / 描述…"
             value={q}
@@ -42,11 +47,11 @@ function Navbar() {
               <div className="avatar ring" title={user.userName}>
                 {user.userName.slice(0, 1).toUpperCase()}
               </div>
-              <button className="btn btn-ghost btn-sm" onClick={logout}>退出</button>
+              <button className="btn btn-plain btn-sm" onClick={logout}>退出</button>
             </>
           ) : (
             <>
-              <NavLink to="/login" className="btn btn-ghost btn-sm">登录</NavLink>
+              <NavLink to="/login" className="btn btn-plain btn-sm">登录</NavLink>
               <NavLink to="/register" className="btn btn-primary btn-sm">注册</NavLink>
             </>
           )}

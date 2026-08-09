@@ -34,7 +34,7 @@ export default function Auth({ mode }: { mode: 'login' | 'register' }) {
   return (
     <div className="auth-wrap fade-in">
       <div className="auth-card">
-        <div className="auth-logo">QAN Gallery</div>
+        <div className="auth-logo"><span className="grad">QAN Gallery</span></div>
         <div className="auth-sub">
           {mode === 'login' ? '欢迎回来,继续你的收藏' : '需要邀请码才能加入哦'}
         </div>

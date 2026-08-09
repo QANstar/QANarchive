@@ -123,7 +123,7 @@ export default function PartEdit() {
               <img
                 src={pendingPreview ? URL.createObjectURL(pendingPreview) : preview!}
                 alt="预览"
-                style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 12, border: '1px solid var(--border)' }}
+                style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 12, border: '1px solid var(--hairline)' }}
               />
             </div>
           )}

@@ -37,7 +37,7 @@ export default function CharacterDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addOpen, candSearch]);
 
-  if (notFound) return <div className="container empty"><div className="empty-emoji">😢</div><p>角色不存在</p></div>;
+  if (notFound) return <div className="container empty"><div className="empty-emoji">✦</div><p>角色不存在</p></div>;
   if (!char) return <div className="container loading-row"><div className="spinner" /></div>;
 
   const isOwner = user?.id === char.author.id;
@@ -79,7 +79,7 @@ export default function CharacterDetail() {
           {char.previewUrl ? (
             <img src={char.previewUrl} alt={char.name} />
           ) : (
-            <div className="grad-ph" style={{ width: '100%', height: '100%', fontSize: 56 }}>👤</div>
+            <div className="grad-ph" style={{ width: '100%', height: '100%', fontSize: 56 }}>✦</div>
           )}
         </div>
         <div className="side-panel">
@@ -95,27 +95,27 @@ export default function CharacterDetail() {
           {msg && <div className="toast-msg error">{msg}</div>}
 
           <div className="panel-section">
-            <h3>👤 角色设定 Prompt</h3>
+            <h3>角色设定 Prompt</h3>
             <PromptBlock text={char.prompt} />
           </div>
 
           {char.intro && (
             <div className="panel-section">
-              <h3>📄 简介</h3>
+              <h3>简介</h3>
               <div style={{ fontSize: 13.5, lineHeight: 1.7 }}>{char.intro}</div>
             </div>
           )}
 
           {char.tags.length > 0 && (
             <div className="panel-section">
-              <h3>🏷️ 标签</h3>
+              <h3>标签</h3>
               <TagChips tags={char.tags} color="lavender" />
             </div>
           )}
 
           <div className="panel-section">
-            <h3>📁 合集信息</h3>
-            <div style={{ fontSize: 13.5, color: 'var(--ink-soft)' }}>
+            <h3>合集信息</h3>
+            <div style={{ fontSize: 13.5, color: 'var(--ink-3)' }}>
               共 {char.works.length} 个作品 · 创建于 {new Date(char.createdAt).toLocaleDateString('zh-CN')}
             </div>
           </div>
@@ -123,11 +123,11 @@ export default function CharacterDetail() {
       </div>
 
       <div className="section-head">
-        <h2>📁 合集作品({char.works.length})</h2>
+        <h2>合集作品({char.works.length})</h2>
         <div style={{ display: 'flex', gap: 10 }}>
           {user && (
             <>
-              <button className="btn btn-ghost btn-sm" onClick={() => setAddOpen(!addOpen)}>
+              <button className="btn btn-plain btn-sm" onClick={() => setAddOpen(!addOpen)}>
                 {addOpen ? '收起' : '＋ 追加已有作品'}
               </button>
               <Link to={`/work/new?character=${char.id}`} className="btn btn-primary btn-sm">＋ 新建作品</Link>
@@ -161,7 +161,7 @@ export default function CharacterDetail() {
       )}
 
       {char.works.length === 0 ? (
-        <div className="empty"><div className="empty-emoji">🌸</div><p>这个角色还没有作品,点右上角「新建作品」开始吧</p></div>
+        <div className="empty"><div className="empty-emoji">✦</div><p>这个角色还没有作品,点击「新建作品」开始吧</p></div>
       ) : (
         <div className="waterfall stagger">
           {char.works.map((w) => (
