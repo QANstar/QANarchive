@@ -1,6 +1,14 @@
 import { useState } from 'react';
 
-export function CopyButton({ text, label = '复制' }: { text: string; label?: string }) {
+export function CopyButton({
+  text,
+  label = '复制',
+  inline = true,
+}: {
+  text: string;
+  label?: string;
+  inline?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -19,7 +27,7 @@ export function CopyButton({ text, label = '复制' }: { text: string; label?: s
   };
 
   return (
-    <button type="button" className="copy-btn" onClick={copy}>
+    <button type="button" className={inline ? 'btn btn-plain btn-sm' : 'copy-btn'} onClick={copy}>
       {copied ? '✓ 已复制' : label}
     </button>
   );
@@ -28,8 +36,10 @@ export function CopyButton({ text, label = '复制' }: { text: string; label?: s
 export function PromptBlock({ text, label = '复制 prompt' }: { text: string; label?: string }) {
   return (
     <div className="prompt-block">
-      <CopyButton text={text} label={label} />
-      {text}
+      <div className="prompt-block-top">
+        <CopyButton inline text={text} label={label} />
+      </div>
+      <div className="prompt-block-text">{text}</div>
     </div>
   );
 }

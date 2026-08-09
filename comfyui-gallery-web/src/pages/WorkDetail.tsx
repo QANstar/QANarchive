@@ -120,7 +120,7 @@ export default function WorkDetail() {
                 <button className="btn btn-plain btn-sm" onClick={() => setWorkflowOpen(!workflowOpen)}>
                   {workflowOpen ? '收起' : '查看 JSON'}
                 </button>
-                <CopyButton text={work.workflowJson} label="复制 JSON" />
+                <CopyButton inline text={work.workflowJson} label="复制 JSON" />
                 <button className="btn btn-plain btn-sm" onClick={downloadWorkflow}>下载</button>
               </div>
               {workflowOpen && (
