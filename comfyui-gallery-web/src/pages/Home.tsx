@@ -23,6 +23,8 @@ export default function Home() {
 
   const [hotTags, setHotTags] = useState<HotTag[]>([]);
   const [items, setItems] = useState<AnyItem[]>([]);
+  // items 数据实际归属的 tab(避免 tab 切换瞬间用旧数据渲染新 tab 的卡片)
+  const [loadedTab, setLoadedTab] = useState<Tab>(tab);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -56,6 +58,7 @@ export default function Home() {
       .then((res) => {
         if (requestIdRef.current !== rid) return;
         setItems(res.data.items);
+        setLoadedTab(tab);
         setHasMore(res.data.hasMore);
         if (tab === 'parts') {
           const cats = new Set<string>();
@@ -141,6 +144,7 @@ export default function Home() {
         },
       })
       .then((res) => {
+        setLoadedTab(tab);
         setItems(res.data.items);
         setHasMore(res.data.hasMore);
       })
@@ -219,8 +223,8 @@ export default function Home() {
 
         <Waterfall hasMore={hasMore} loading={loading} onLoadMore={loadMore}>
           {items.map((item) => {
-            if (tab === 'works') return <WorkCard key={item.id} work={item as never} />;
-            if (tab === 'characters') return <CharacterCard key={item.id} character={item as never} />;
+            if (loadedTab === 'works') return <WorkCard key={item.id} work={item as never} />;
+            if (loadedTab === 'characters') return <CharacterCard key={item.id} character={item as never} />;
             return <PartCard key={item.id} part={item as never} />;
           })}
         </Waterfall>
