@@ -1,0 +1,11 @@
+# 运行时配置（含密钥），不入库
+appsettings.json
+
+# 数据与媒体存储
+storage/
+
+# IDE / 构建产物
+bin/
+obj/
+.vs/
+*.user

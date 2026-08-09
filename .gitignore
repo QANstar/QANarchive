@@ -1,0 +1,19 @@
+# GitHub 相关(工作流/技能)
+.github/
+
+# 运行配置与数据(密钥不入库)
+**/appsettings.json
+storage/
+
+# 前端依赖与构建产物
+node_modules/
+dist/
+
+# .NET 构建产物
+bin/
+obj/
+
+# 日志与临时文件
+*.log
+*.user
+.DS_Store
