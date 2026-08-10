@@ -34,7 +34,7 @@ export function WorkCard({ work }: { work: WorkListItem }) {
 export function CharacterCard({ character }: { character: CharacterListItem }) {
   return (
     <Link to={`/character/${character.id}`} className="card fade-in">
-      <div className="card-thumb wide">
+      <div className="card-thumb">
         {character.previewUrl ? (
           <img src={character.previewUrl} alt={character.name} loading="lazy" />
         ) : (
