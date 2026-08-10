@@ -1,8 +1,9 @@
 # ─── 构建阶段 ───
 FROM node:22-alpine AS build
 WORKDIR /app
+# 只拷贝依赖清单 → npm ci(层缓存:依赖不变则跳过,ci 比 install 快且确定)
 COPY package.json package-lock.json* ./
-RUN npm install
+RUN npm ci
 COPY . .
 RUN npm run build
 
