@@ -1,9 +1,9 @@
 # ─── 构建阶段 ───
 FROM node:22-alpine AS build
 WORKDIR /app
-# 只拷贝依赖清单 → npm ci(层缓存:依赖不变则跳过,ci 比 install 快且确定)
+# 只拷贝依赖清单 → npm ci(国内镜像加速拉包,依赖层缓存)
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm config set registry https://registry.npmmirror.com && npm ci
 COPY . .
 RUN npm run build
 
