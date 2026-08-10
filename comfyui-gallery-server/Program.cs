@@ -13,9 +13,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite($"Data Source={dbPath}"));
 
 // ─── JWT 认证 ───
-var jwtKey = builder.Configuration.GetValue<string>("Jwt:Key")!;
-var jwtIssuer = builder.Configuration.GetValue<string>("Jwt:Issuer")!;
-var jwtAudience = builder.Configuration.GetValue<string>("Jwt:Audience")!;
+var jwtKey = builder.Configuration.GetValue<string>("Jwt:Key")
+    ?? throw new InvalidOperationException("配置缺失: Jwt:Key 未设置，请检查 appsettings.json 或环境变量 JWT__Key");
+var jwtIssuer = builder.Configuration.GetValue<string>("Jwt:Issuer")
+    ?? throw new InvalidOperationException("配置缺失: Jwt:Issuer 未设置，请检查 appsettings.json 或环境变量 JWT__Issuer");
+var jwtAudience = builder.Configuration.GetValue<string>("Jwt:Audience")
+    ?? throw new InvalidOperationException("配置缺失: Jwt:Audience 未设置，请检查 appsettings.json 或环境变量 JWT__Audience");
 builder.Services.AddAuthentication().AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters

@@ -1,6 +1,6 @@
 # QAN Gallery API end-to-end smoke test (ASCII only)
 $ErrorActionPreference = "Stop"
-$base = "http://localhost:5000"
+$base = "http://localhost:19321"
 
 function Show($title, $obj) {
     Write-Host "`n=== $title ===" -ForegroundColor Cyan

@@ -3,7 +3,7 @@ services:
     build: ./comfyui-gallery-server
     container_name: gallery-api
     ports:
-      - "5000:5000"
+      - "19321:5000"
     volumes:
       - ./storage:/app/storage
     restart: unless-stopped
@@ -12,7 +12,7 @@ services:
     build: ./comfyui-gallery-web
     container_name: gallery-web
     ports:
-      - "80:80"
+      - "19320:80"
     depends_on:
       - gallery-api
     restart: unless-stopped
