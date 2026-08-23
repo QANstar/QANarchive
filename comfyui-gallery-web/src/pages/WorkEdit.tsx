@@ -172,21 +172,6 @@ export default function WorkEdit() {
     }
   };
 
-  const moveMedia = async (index: number, dir: -1 | 1) => {
-    if (!workIdRef.current) return;
-    const target = index + dir;
-    if (target < 0 || target >= media.length) return;
-    const next = [...media];
-    [next[index], next[target]] = [next[target], next[index]];
-    setMedia(next);
-    try {
-      await api.put(`/works/${workIdRef.current}/media/order`,
-        next.map((m, i) => ({ mediaId: m.id, sortOrder: i })));
-    } catch (err) {
-      setMsg(errorMessage(err));
-    }
-  };
-
   if (!loaded) {
     return <div className="container loading-row"><div className="spinner" /></div>;
   }
@@ -289,7 +274,7 @@ export default function WorkEdit() {
             <label>媒体文件(图片 / 视频)</label>
             {media.length > 0 && (
               <div className="media-grid" style={{ marginBottom: 14 }}>
-                {media.map((m, i) => (
+                {media.map((m) => (
                   <div key={m.id} className="media-tile">
                     {m.type === 'video' ? <video src={m.url} muted /> : <img src={m.url} alt="" />}
                     <button type="button" className="tile-remove" onClick={() => removeMedia(m)} title="删除">✕</button>
@@ -299,10 +284,6 @@ export default function WorkEdit() {
                       </button>
                     )}
                     <span className="tile-type">{m.type === 'video' ? '视频' : '图片'}</span>
-                    <div style={{ position: 'absolute', bottom: 6, left: 44, display: 'flex', gap: 4 }}>
-                      <button type="button" className="tile-cover" style={{ position: 'static' }} onClick={() => moveMedia(i, -1)}>←</button>
-                      <button type="button" className="tile-cover" style={{ position: 'static' }} onClick={() => moveMedia(i, 1)}>→</button>
-                    </div>
                   </div>
                 ))}
               </div>
