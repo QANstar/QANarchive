@@ -1,5 +1,6 @@
 # GitHub 相关(工作流/技能)
 .github/
+.agents/
 
 # 运行配置与数据(密钥不入库)
 **/appsettings.json
