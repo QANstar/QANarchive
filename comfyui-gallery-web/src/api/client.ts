@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-export const api = axios.create({ baseURL: 'http://192.168.5.4:19321/api' });
+// 同域反代:dev 走 Vite proxy,/prod 走 Nginx 反代 /api → 后端
+export const api = axios.create({ baseURL: '/api' });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('qan_token');
