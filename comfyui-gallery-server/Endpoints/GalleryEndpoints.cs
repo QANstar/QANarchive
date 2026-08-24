@@ -65,7 +65,7 @@ public static class GalleryEndpoints
             query = query.Where(w => w.UserId == userId);
 
         if (has3d)
-            query = query.Where(w => w.Assets.Any());
+            query = query.Where(w => w.Type == "3d");
 
         if (!string.IsNullOrWhiteSpace(search))
         {

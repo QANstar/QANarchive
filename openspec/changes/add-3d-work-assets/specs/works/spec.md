@@ -1,5 +1,24 @@
 ## ADDED Requirements
 
+### Requirement: 作品类型(2D / 3D)
+
+系统 SHALL 允许用户在创建/编辑作品时选择类型(2D / 3D),默认 2D;3D 作品不需要 prompt 与 ComfyUI 工作流 JSON,画廊依据类型展示「3D」徽标与筛选。
+
+#### Scenario: 创建3D作品无需prompt
+
+- **WHEN** 用户新建作品时选择 3D 类型且不填写 prompt
+- **THEN** 系统成功创建该 3D 作品,prompt 为空,详情页不要求展示 prompt
+
+#### Scenario: 创建2D作品需prompt
+
+- **WHEN** 用户新建作品时选择 2D 类型但未填写 prompt
+- **THEN** 系统拒绝并返回 400 错误
+
+#### Scenario: 3D作品卡片标记
+
+- **WHEN** 用户查看一个 3D 类型作品
+- **THEN** 画廊卡片显示「3D」徽标,画廊「3D」筛选只返回 3D 类型作品
+
 ### Requirement: 作品关联3D资源
 
 系统 SHALL 允许作品关联 0..N 个 3D 资源(assets),每个资源为一个 fbx / blender(.blend) / 压缩包(zip)源文件并配对一张预览图;资源独立于图片/视频媒体,可排序、可增删。

@@ -92,6 +92,14 @@ storage/media/works/{workId}/assets/{assetGuid}/preview_{guid}.png
 - 新增 `WorkAssets` 表 + `Work.Assets` 导航;经 EF `Database.Migrate()` 增量迁移(一次 `_Migrate` 重放),不破坏既有 `Works`/`Medias` 数据。
 - 删除作品时级联删除其全部 `WorkAsset` 及其磁盘目录。
 
+### D8: 作品类型与 3D 资源创建
+
+- `Work` 新增 `Type` 字段(`"2d"` / `"3d"`,默认 `"2d"`;`AddWorkType` 迁移把既有行回填 `"2d"`),在创建/编辑时由用户选择。
+- 3D 作品:前端隐藏「Prompt」与「ComfyUI 工作流 JSON」字段,`Prompt` 允许为空(后端仅对 2D 强制 `prompt` 非空);无需再造工作流。
+- `WorkListItem` / `WorkDetail` 返回 `Type`;`Has3D` 由 `Type == "3d"` 决定,画廊 `has3d` 筛选也改为 `Type == "3d"`。
+- 3D 资源上传在**创建与编辑模式**都可用:创建模式先暂存(资源文件 + 预览图),作品创建后统一上传;编辑模式即时上传。媒体(图片/视频)同理。
+
+
 ## Risks / Trade-offs
 
 - [FBX 外部贴图渲染不完整] → 接受 best-effort;完整带贴图走 `.zip` 完整资源包;记录为已知限制。

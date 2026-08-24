@@ -4,7 +4,8 @@
 
 ## What Changes
 
-- 作品(Work)新增**独立的 3D 资源集合 `assets`**,与现有图片/视频 `mediaItems` 平行、互不干扰。
+- 作品(Work)新增**类型(2D / 3D)**:创建/编辑时选择,默认 2D;3D 作品不要求 prompt 与 ComfyUI 工作流 JSON,画廊按类型显示「3D」徽标与筛选。
+- 作品(Work)新增**独立的 3D 资源集合 `assets`**,与现有图片/视频 `mediaItems` 平行、互不干扰;创建与编辑模式均可添加。
 - 每个 3D 资源 = 一个**源文件**(`fbx`/`blend`/`zip`)+ **配对的预览图**;支持排序、单个删除、下载。
 - `fbx` 资源在作品详情页提供**浏览器内 3D 交互预览**(three.js `FBXLoader`);`blend`/`zip` 因浏览器无法渲染,仅提供预览图与下载。
 - **3D 资源源文件(fbx/blend/zip)与下载需登录**(经授权 API 端点,携带 JWT);**预览图保持公开**,公开画廊仍可显示。源文件存于独立 `storage/assets` 根、不经 `/media` 静态映射。

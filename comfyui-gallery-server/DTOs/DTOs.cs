@@ -19,7 +19,8 @@ public record WorkCreateRequest(
     string? WorkflowJson,
     List<string>? Tags,
     List<string>? CharacterIds,
-    List<string>? PartIds);
+    List<string>? PartIds,
+    string? Type);
 
 public record WorkUpdateRequest(
     string Title,
@@ -28,7 +29,8 @@ public record WorkUpdateRequest(
     string? WorkflowJson,
     List<string>? Tags,
     List<string>? CharacterIds,
-    List<string>? PartIds);
+    List<string>? PartIds,
+    string? Type);
 
 public record AuthorInfo(string Id, string Name);
 
@@ -47,6 +49,7 @@ public record WorkAssetDto(
 public record WorkListItem(
     string Id,
     string Title,
+    string Type,
     string? Intro,
     string? CoverUrl,
     bool HasVideo,
@@ -63,6 +66,7 @@ public record PartRef(string Id, string Name, string Category, string? PreviewUr
 public record WorkDetail(
     string Id,
     string Title,
+    string Type,
     string Prompt,
     string? Intro,
     string? WorkflowJson,

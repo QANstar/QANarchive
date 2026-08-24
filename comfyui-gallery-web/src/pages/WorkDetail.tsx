@@ -109,15 +109,18 @@ export default function WorkDetail() {
               </div>
             )}
           </div>
-          <div className="card-sub" style={{ marginBottom: 14 }}>
-            {work.author.name} · {new Date(work.createdAt).toLocaleString('zh-CN')}
+          <div className="card-sub" style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {work.type === '3d' && <span className={`type-pill ${work.type === '3d' ? 'type-3d' : ''}`}>3D</span>}
+            <span>{work.author.name} · {new Date(work.createdAt).toLocaleString('zh-CN')}</span>
           </div>
           {msg && <div className="toast-msg error">{msg}</div>}
 
-          <div className="panel-section">
-            <h3>Prompt</h3>
-            <PromptBlock text={work.prompt} />
-          </div>
+          {work.prompt && (
+            <div className="panel-section">
+              <h3>Prompt</h3>
+              <PromptBlock text={work.prompt} />
+            </div>
+          )}
 
           {work.intro && (
             <div className="panel-section">

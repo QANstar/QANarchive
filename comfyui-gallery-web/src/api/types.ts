@@ -22,6 +22,7 @@ export interface WorkAssetDto {
 export interface WorkListItem {
   id: string;
   title: string;
+  type: string; // 2d | 3d
   intro?: string | null;
   coverUrl?: string | null;
   hasVideo: boolean;
@@ -38,6 +39,7 @@ export interface PartRef { id: string; name: string; category: string; previewUr
 export interface WorkDetail {
   id: string;
   title: string;
+  type: string; // 2d | 3d
   prompt: string;
   intro?: string | null;
   workflowJson?: string | null;

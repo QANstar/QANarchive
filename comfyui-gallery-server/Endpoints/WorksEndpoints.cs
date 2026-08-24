@@ -25,7 +25,8 @@ public static class WorksEndpoints
             if (userId == null) return Results.Unauthorized();
             if (string.IsNullOrWhiteSpace(req.Title) || req.Title.Length > 100)
                 return Results.BadRequest(new { error = "标题不能为空且不超过 100 字符" });
-            if (string.IsNullOrWhiteSpace(req.Prompt))
+            var type = NormalizeType(req.Type);
+            if (type == "2d" && string.IsNullOrWhiteSpace(req.Prompt))
                 return Results.BadRequest(new { error = "prompt 不能为空" });
             if (!string.IsNullOrEmpty(req.WorkflowJson) && req.WorkflowJson.Length > MaxWorkflowJsonLength)
                 return Results.BadRequest(new { error = "工作流 JSON 超过 1MB 限制" });
@@ -34,7 +35,8 @@ public static class WorksEndpoints
             {
                 UserId = userId,
                 Title = req.Title.Trim(),
-                Prompt = req.Prompt.Trim(),
+                Type = type,
+                Prompt = (req.Prompt ?? "").Trim(),
                 Intro = req.Intro,
                 WorkflowJson = req.WorkflowJson
             };
@@ -105,13 +107,15 @@ public static class WorksEndpoints
 
             if (string.IsNullOrWhiteSpace(req.Title) || req.Title.Length > 100)
                 return Results.BadRequest(new { error = "标题不能为空且不超过 100 字符" });
-            if (string.IsNullOrWhiteSpace(req.Prompt))
+            var type = NormalizeType(req.Type);
+            if (type == "2d" && string.IsNullOrWhiteSpace(req.Prompt))
                 return Results.BadRequest(new { error = "prompt 不能为空" });
             if (!string.IsNullOrEmpty(req.WorkflowJson) && req.WorkflowJson.Length > MaxWorkflowJsonLength)
                 return Results.BadRequest(new { error = "工作流 JSON 超过 1MB 限制" });
 
             work.Title = req.Title.Trim();
-            work.Prompt = req.Prompt.Trim();
+            work.Type = type;
+            work.Prompt = (req.Prompt ?? "").Trim();
             work.Intro = req.Intro;
             work.WorkflowJson = req.WorkflowJson;
             work.UpdatedAt = DateTime.UtcNow;
@@ -586,10 +590,12 @@ public static class WorksEndpoints
     {
         var tags = work.WorkTags.Select(wt => wt.Tag!.Name).OrderBy(n => n).ToList();
         var hasVideo = work.MediaItems.Any(m => m.Type == "video");
-        var has3D = work.Assets.Any();
+        var type = NormalizeType(work.Type);
+        var has3D = type == "3d";
         return new WorkListItem(
             work.Id,
             work.Title,
+            type,
             work.Intro,
             EffectiveCoverUrl(work),
             hasVideo,
@@ -640,6 +646,7 @@ public static class WorksEndpoints
         return new WorkDetail(
             work.Id,
             work.Title,
+            NormalizeType(work.Type),
             work.Prompt,
             work.Intro,
             work.WorkflowJson,
@@ -668,6 +675,10 @@ public static class WorksEndpoints
             asset.SortOrder,
             asset.Size);
     }
+
+    /// <summary>归一化作品类型:2d / 3d(其余视为 2d)</summary>
+    private static string NormalizeType(string? t) =>
+        (t?.Trim().ToLowerInvariant() ?? "2d") switch { "3d" => "3d", _ => "2d" };
 }
 
 public record MediaOrderItem(string MediaId, int SortOrder);

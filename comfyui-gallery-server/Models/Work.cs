@@ -17,7 +17,12 @@ public class Work
     [MaxLength(100)]
     public string Title { get; set; } = string.Empty;
 
-    /// <summary>生成 prompt</summary>
+    /// <summary>作品类型:2d / 3d</summary>
+    [Required]
+    [MaxLength(5)]
+    public string Type { get; set; } = "2d";
+
+    /// <summary>生成 prompt(3d 作品可不填)</summary>
     [Required]
     public string Prompt { get; set; } = string.Empty;
 

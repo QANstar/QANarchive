@@ -15,6 +15,7 @@ export default function WorkEdit() {
   const [params] = useSearchParams();
 
   const [title, setTitle] = useState('');
+  const [workType, setWorkType] = useState<'2d' | '3d'>('2d');
   const [prompt, setPrompt] = useState('');
   const [intro, setIntro] = useState('');
   const [workflowJson, setWorkflowJson] = useState('');
@@ -57,6 +58,7 @@ export default function WorkEdit() {
         setMedia(w.mediaItems);
         setAssets(w.assets ?? []);
         setCover(w.coverUrl ?? null);
+        setWorkType(w.type === '3d' ? '3d' : '2d');
         setLoaded(true);
       })
       .catch(() => { navigate('/'); });
@@ -146,9 +148,10 @@ export default function WorkEdit() {
     setMsg('');
     try {
       const payload = {
-        title, prompt,
+        title, type: workType,
+        prompt: workType === '3d' ? (prompt || '') : prompt,
         intro: intro || null,
-        workflowJson: workflowJson || null,
+        workflowJson: workType === '3d' ? null : (workflowJson || null),
         tags,
         characterIds,
         partIds,
@@ -229,7 +232,30 @@ export default function WorkEdit() {
       <form className="form-card" onSubmit={handleSave}>
         <div className="form-title">{isEdit ? '编辑作品' : '新建作品'}</div>
         <div className="form-sub">
-          {isEdit ? '修改标题、prompt、工作流与关联' : '直接传图:不勾选任何角色即可'}{msg && <span className="toast-msg error"> · {msg}</span>}
+          {isEdit ? '修改标题、类型、prompt、工作流与关联' : '新建作品:选择 2D 或 3D 类型'}{msg && <span className="toast-msg error"> · {msg}</span>}
+        </div>
+
+        <div className="field">
+          <label>作品类型</label>
+          <div className="chips">
+            <button
+              type="button"
+              className={`chip ${workType === '2d' ? 'selected' : 'chip-blue'} selectable`}
+              onClick={() => setWorkType('2d')}
+            >
+              2D · 图片 / 视频
+            </button>
+            <button
+              type="button"
+              className={`chip ${workType === '3d' ? 'selected' : 'chip-lavender'} selectable`}
+              onClick={() => setWorkType('3d')}
+            >
+              3D · 模型
+            </button>
+          </div>
+          <div className="hint">
+            {workType === '3d' ? '3D 作品:上传 fbx/blend/zip 资源,无需 prompt 与 ComfyUI 工作流' : '2D 作品:图片/视频 + prompt,可选 ComfyUI 工作流 JSON'}
+          </div>
         </div>
 
         <div className="field">
@@ -237,38 +263,42 @@ export default function WorkEdit() {
           <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="给作品起个名字" maxLength={100} required />
         </div>
 
-        <div className="field">
-          <label>Prompt <span className="req">*</span></label>
-          <textarea className="textarea" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="生成这张图/视频的完整 prompt" required />
-        </div>
+        {workType === '2d' && (
+          <div className="field">
+            <label>Prompt <span className="req">*</span></label>
+            <textarea className="textarea" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="生成这张图/视频的完整 prompt" required />
+          </div>
+        )}
 
         <div className="field">
           <label>简介</label>
           <textarea className="textarea" value={intro} onChange={(e) => setIntro(e.target.value)} placeholder="创作思路、满意的地方…" />
         </div>
 
-        <div className="field">
-          <label>ComfyUI 工作流 JSON(可选)</label>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-            <button type="button" className="btn btn-plain btn-sm" onClick={() => jsonFileRef.current?.click()}>
-              导入 JSON 文件
-            </button>
-            {workflowJson && (
-              <button type="button" className="btn btn-plain btn-sm" onClick={() => setWorkflowJson('')}>
-                清空
+        {workType === '2d' && (
+          <div className="field">
+            <label>ComfyUI 工作流 JSON(可选)</label>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <button type="button" className="btn btn-plain btn-sm" onClick={() => jsonFileRef.current?.click()}>
+                导入 JSON 文件
               </button>
-            )}
+              {workflowJson && (
+                <button type="button" className="btn btn-plain btn-sm" onClick={() => setWorkflowJson('')}>
+                  清空
+                </button>
+              )}
+            </div>
+            <textarea className="textarea code" value={workflowJson} onChange={(e) => setWorkflowJson(e.target.value)} placeholder='导入 .json 文件,或直接粘贴 {"nodes":[...]}' />
+            <div className="hint">最大 1MB,保存后可在详情页复制或下载</div>
+            <input
+              ref={jsonFileRef}
+              type="file"
+              accept=".json,application/json"
+              hidden
+              onChange={handleJsonFile}
+            />
           </div>
-          <textarea className="textarea code" value={workflowJson} onChange={(e) => setWorkflowJson(e.target.value)} placeholder='导入 .json 文件,或直接粘贴 {"nodes":[...]}' />
-          <div className="hint">最大 1MB,保存后可在详情页复制或下载</div>
-          <input
-            ref={jsonFileRef}
-            type="file"
-            accept=".json,application/json"
-            hidden
-            onChange={handleJsonFile}
-          />
-        </div>
+        )}
 
         <div className="field">
           <label>标签</label>
@@ -316,62 +346,60 @@ export default function WorkEdit() {
           )}
         </div>
 
-        {/* 媒体管理(编辑模式) */}
-        {isEdit && (
-          <div className="field">
-            <label>媒体文件(图片 / 视频)</label>
-            {media.length > 0 && (
-              <div className="media-grid" style={{ marginBottom: 14 }}>
-                {media.map((m) => (
-                  <div key={m.id} className="media-tile">
-                    {m.type === 'video' ? <video src={m.url} muted /> : <img src={m.url} alt="" />}
-                    <button type="button" className="tile-remove" onClick={() => removeMedia(m)} title="删除">✕</button>
-                    {m.type === 'image' && (
-                      <button type="button" className="tile-cover" onClick={() => setAsCover(m)} title="设为封面">
-                        {cover === m.url ? '★ 封面' : '设为封面'}
-                      </button>
-                    )}
-                    <span className="tile-type">{m.type === 'video' ? '视频' : '图片'}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            <Uploader accept="image/*,video/mp4,video/webm" hint="图片 ≤50MB,视频 ≤500MB,可多选" onFiles={handleUpload} />
+        {/* 媒体管理(创建=暂存,编辑=上传) */}
+        <div className="field">
+          <label>媒体文件(图片 / 视频)</label>
+          {media.length > 0 && (
+            <div className="media-grid" style={{ marginBottom: 14 }}>
+              {media.map((m) => (
+                <div key={m.id} className="media-tile">
+                  {m.type === 'video' ? <video src={m.url} muted /> : <img src={m.url} alt="" />}
+                  <button type="button" className="tile-remove" onClick={() => removeMedia(m)} title="删除">✕</button>
+                  {m.type === 'image' && (
+                    <button type="button" className="tile-cover" onClick={() => setAsCover(m)} title="设为封面">
+                      {cover === m.url ? '★ 封面' : '设为封面'}
+                    </button>
+                  )}
+                  <span className="tile-type">{m.type === 'video' ? '视频' : '图片'}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <Uploader accept="image/*,video/mp4,video/webm" hint="图片 ≤50MB,视频 ≤500MB,可多选" onFiles={handleUpload} />
+          {isEdit && (
             <div style={{ marginTop: 12 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>视频封面(纯视频作品需手动上传)</label>
               <Uploader accept="image/*" multiple={false} hint="上传一张图片作为卡片封面" onFiles={uploadCover} />
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* 3D 资源管理(编辑模式) */}
-        {isEdit && (
-          <div className="field">
-            <label>3D 资源(fbx / blend / zip)</label>
-            {assets.length > 0 && (
-              <div className="asset-list" style={{ marginBottom: 14 }}>
-                {assets.map((a) => (
-                  <div key={a.id} className="asset-row">
-                    {a.previewUrl ? (
-                      <img className="asset-thumb" src={a.previewUrl} alt="" loading="lazy" />
-                    ) : (
-                      <div className="asset-thumb placeholder">3D</div>
-                    )}
-                    <div className="asset-info">
-                      <div className="asset-name">{a.originalName}</div>
-                      <div className="asset-type">{a.type.toUpperCase()}</div>
-                    </div>
-                    <div className="asset-actions">
-                      <button type="button" className="btn btn-plain btn-sm" onClick={() => downloadAsset(a)}>下载</button>
-                      <button type="button" className="btn btn-plain btn-sm" onClick={() => removeAsset(a)}>删除</button>
-                    </div>
+        {/* 3D 资源管理(创建=暂存,编辑=上传) */}
+        <div className="field">
+          <label>3D 资源(fbx / blend / zip)</label>
+          {assets.length > 0 && (
+            <div className="asset-list" style={{ marginBottom: 14 }}>
+              {assets.map((a) => (
+                <div key={a.id} className="asset-row">
+                  {a.previewUrl ? (
+                    <img className="asset-thumb" src={a.previewUrl} alt="" loading="lazy" />
+                  ) : (
+                    <div className="asset-thumb placeholder">3D</div>
+                  )}
+                  <div className="asset-info">
+                    <div className="asset-name">{a.originalName}</div>
+                    <div className="asset-type">{a.type.toUpperCase()}</div>
                   </div>
-                ))}
-              </div>
-            )}
-            <AssetUploader onFiles={handleUploadAsset} />
-          </div>
-        )}
+                  <div className="asset-actions">
+                    <button type="button" className="btn btn-plain btn-sm" onClick={() => downloadAsset(a)}>下载</button>
+                    <button type="button" className="btn btn-plain btn-sm" onClick={() => removeAsset(a)}>删除</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <AssetUploader onFiles={handleUploadAsset} />
+        </div>
 
         {/* 创建模式:暂存待上传文件 */}
         {!isEdit && pendingFiles.length > 0 && (

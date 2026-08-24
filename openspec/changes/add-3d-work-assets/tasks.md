@@ -51,3 +51,13 @@
 - [x] 8.7 对照各 spec 场景逐条核验 `works` / `media` / `gallery` 的 delta
 
 > 注:负路径(非法类型/超限/非图片预览)与删除级联两项未在本轮自动化验证中覆盖,建议后续补测;8.1 的浏览器内 fbx 渲染已通过类型检查与构建,未做真实浏览器交互验证。
+
+## 9. 作品类型(2D/3D)与创建模式资源
+
+- [x] 9.1 `Work` 增加 `Type`(默认 "2d")+ `AddWorkType` 迁移(既有行回填 "2d")
+- [x] 9.2 DTO:`WorkCreateRequest`/`WorkUpdateRequest` 增加 `Type`;`WorkDetail`/`WorkListItem` 返回 `Type`;`Has3D` 由 `Type == "3d"` 决定
+- [x] 9.3 后端校验:仅 2D 强制 `prompt` 非空;3D 允许空 prompt(存空串)
+- [x] 9.4 画廊 `has3d` 筛选改为 `Type == "3d"`
+- [x] 9.5 前端 `WorkEdit`:新增类型选择(2D/3D),3D 隐藏 Prompt 与工作流 JSON 字段;`WorkDetail` 显示类型并隐藏空 Prompt
+- [x] 9.6 前端创建模式即可添加 3D 资源(暂存→创建后上传)与媒体;编辑模式即时上传
+- [x] 9.7 验证:3D 作品可无 prompt 创建;2D 无 prompt 被 400 拒;画廊 `has3d` 只返回 3D 类型;`type`/`has3d` 正确返回
