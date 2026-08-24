@@ -35,6 +35,7 @@ public class Work
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public List<Media> MediaItems { get; set; } = new();
+    public List<WorkAsset> Assets { get; set; } = new();
     public List<WorkTag> WorkTags { get; set; } = new();
     public List<CharacterWork> CharacterWorks { get; set; } = new();
     public List<WorkPart> WorkParts { get; set; } = new();

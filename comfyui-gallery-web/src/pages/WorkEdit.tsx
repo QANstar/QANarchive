@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { api, errorMessage } from '../api/client';
-import type { CharacterRef, PartRef, WorkDetail, MediaDto } from '../api/types';
+import { api, downloadFile, errorMessage } from '../api/client';
+import type { CharacterRef, PartRef, WorkDetail, MediaDto, WorkAssetDto } from '../api/types';
 import TagPicker from '../components/TagPicker';
 import Uploader from '../components/Uploader';
+import AssetUploader from '../components/AssetUploader';
+
+interface PendingAsset { asset: File; preview: File | null }
 
 export default function WorkEdit() {
   const { id } = useParams<{ id: string }>();
@@ -22,8 +25,10 @@ export default function WorkEdit() {
   const [characters, setCharacters] = useState<CharacterRef[]>([]);
   const [parts, setParts] = useState<PartRef[]>([]);
   const [media, setMedia] = useState<MediaDto[]>([]);
+  const [assets, setAssets] = useState<WorkAssetDto[]>([]);
   const [cover, setCover] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [pendingAssets, setPendingAssets] = useState<PendingAsset[]>([]);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [loaded, setLoaded] = useState(!isEdit);
@@ -50,6 +55,7 @@ export default function WorkEdit() {
         setCharacterIds(w.characters.map((c) => c.id));
         setPartIds(w.parts.map((p) => p.id));
         setMedia(w.mediaItems);
+        setAssets(w.assets ?? []);
         setCover(w.coverUrl ?? null);
         setLoaded(true);
       })
@@ -67,10 +73,52 @@ export default function WorkEdit() {
   }, []);
 
   const uploadPending = async (workId: string) => {
-    if (!pendingFiles.length) return;
-    const fd = new FormData();
-    pendingFiles.forEach((f) => fd.append('files', f));
-    await api.post(`/works/${workId}/media`, fd);
+    if (pendingFiles.length) {
+      const fd = new FormData();
+      pendingFiles.forEach((f) => fd.append('files', f));
+      await api.post(`/works/${workId}/media`, fd);
+    }
+    for (const p of pendingAssets) {
+      const fd = new FormData();
+      fd.append('asset', p.asset);
+      if (p.preview) fd.append('preview', p.preview);
+      await api.post(`/works/${workId}/assets`, fd);
+    }
+  };
+
+  const handleUploadAsset = async (assetFile: File, preview: File | null) => {
+    if (!workIdRef.current) {
+      setPendingAssets((p) => [...p, { asset: assetFile, preview }]);
+      return;
+    }
+    try {
+      const fd = new FormData();
+      fd.append('asset', assetFile);
+      if (preview) fd.append('preview', preview);
+      const res = await api.post<WorkAssetDto[]>(`/works/${workIdRef.current}/assets`, fd);
+      setAssets((p) => [...p, ...res.data]);
+    } catch (err) {
+      setMsg(errorMessage(err));
+    }
+  };
+
+  const removeAsset = async (a: WorkAssetDto) => {
+    if (!workIdRef.current) return;
+    try {
+      await api.delete(`/works/${workIdRef.current}/assets/${a.id}`);
+      setAssets((p) => p.filter((x) => x.id !== a.id));
+    } catch (err) {
+      setMsg(errorMessage(err));
+    }
+  };
+
+  const downloadAsset = async (a: WorkAssetDto) => {
+    if (!workIdRef.current) return;
+    try {
+      await downloadFile(a.downloadUrl, a.originalName);
+    } catch (err) {
+      setMsg(errorMessage(err) || '下载失败,请确认已登录');
+    }
   };
 
   const handleJsonFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -296,6 +344,35 @@ export default function WorkEdit() {
           </div>
         )}
 
+        {/* 3D 资源管理(编辑模式) */}
+        {isEdit && (
+          <div className="field">
+            <label>3D 资源(fbx / blend / zip)</label>
+            {assets.length > 0 && (
+              <div className="asset-list" style={{ marginBottom: 14 }}>
+                {assets.map((a) => (
+                  <div key={a.id} className="asset-row">
+                    {a.previewUrl ? (
+                      <img className="asset-thumb" src={a.previewUrl} alt="" loading="lazy" />
+                    ) : (
+                      <div className="asset-thumb placeholder">3D</div>
+                    )}
+                    <div className="asset-info">
+                      <div className="asset-name">{a.originalName}</div>
+                      <div className="asset-type">{a.type.toUpperCase()}</div>
+                    </div>
+                    <div className="asset-actions">
+                      <button type="button" className="btn btn-plain btn-sm" onClick={() => downloadAsset(a)}>下载</button>
+                      <button type="button" className="btn btn-plain btn-sm" onClick={() => removeAsset(a)}>删除</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <AssetUploader onFiles={handleUploadAsset} />
+          </div>
+        )}
+
         {/* 创建模式:暂存待上传文件 */}
         {!isEdit && pendingFiles.length > 0 && (
           <div className="field">
@@ -306,6 +383,19 @@ export default function WorkEdit() {
               ))}
             </div>
             <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setPendingFiles([])}>清空</button>
+          </div>
+        )}
+
+        {/* 创建模式:暂存待上传 3D 资源 */}
+        {!isEdit && pendingAssets.length > 0 && (
+          <div className="field">
+            <label>待上传 3D 资源({pendingAssets.length} 个)</label>
+            <div className="chips">
+              {pendingAssets.map((p, i) => (
+                <span key={i} className="chip chip-blue">{p.asset.name}</span>
+              ))}
+            </div>
+            <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setPendingAssets([])}>清空</button>
           </div>
         )}
 

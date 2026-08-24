@@ -21,6 +21,7 @@ public static class GalleryEndpoints
             string? tags,
             string? category,
             bool mine = false,
+            bool has3d = false,
             int page = 1,
             int pageSize = 20) =>
         {
@@ -44,22 +45,27 @@ public static class GalleryEndpoints
             {
                 "characters" => await BrowseCharactersAsync(db, search, tagList, userId, page, pageSize),
                 "parts" => await BrowsePartsAsync(db, search, tagList, category, userId, page, pageSize),
-                _ => await BrowseWorksAsync(db, search, tagList, userId, page, pageSize)
+                _ => await BrowseWorksAsync(db, search, tagList, userId, has3d, page, pageSize)
             };
         });
     }
 
     private static async Task<IResult> BrowseWorksAsync(
-        AppDbContext db, string? search, List<string> tagList, string? userId, int page, int pageSize)
+        AppDbContext db, string? search, List<string> tagList, string? userId, bool has3d, int page, int pageSize)
     {
         var query = db.Works
             .Include(w => w.User)
             .Include(w => w.MediaItems)
+            .Include(w => w.Assets)
             .Include(w => w.WorkTags).ThenInclude(wt => wt.Tag)
+            .AsSplitQuery()
             .AsQueryable();
 
         if (!string.IsNullOrEmpty(userId))
             query = query.Where(w => w.UserId == userId);
+
+        if (has3d)
+            query = query.Where(w => w.Assets.Any());
 
         if (!string.IsNullOrWhiteSpace(search))
         {

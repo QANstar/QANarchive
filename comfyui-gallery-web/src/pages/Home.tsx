@@ -21,6 +21,7 @@ export default function Home() {
   const search = params.get('q') ?? '';
   const selectedTags = (params.get('tags') ?? '').split(',').filter(Boolean);
   const mine = params.get('mine') === '1';
+  const has3d = params.get('has3d') === '1';
 
   const [hotTags, setHotTags] = useState<HotTag[]>([]);
   const [items, setItems] = useState<AnyItem[]>([]);
@@ -53,6 +54,7 @@ export default function Home() {
           search: search || undefined,
           tags: selectedTags.length ? selectedTags.join(',') : undefined,
           mine: mine ? true : undefined,
+          has3d: tab === 'works' && has3d ? true : undefined,
           page: 1,
           pageSize: 20,
         },
@@ -90,6 +92,7 @@ export default function Home() {
           tags: selectedTags.length ? selectedTags.join(',') : undefined,
           category: category || undefined,
           mine: mine ? true : undefined,
+          has3d: tab === 'works' && has3d ? true : undefined,
           page: next,
           pageSize: 20,
         },
@@ -110,24 +113,27 @@ export default function Home() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [page, tab, search, selectedTags, category, mine]);
+  }, [page, tab, search, selectedTags, category, mine, has3d]);
 
-  const syncUrl = (t: Tab, tags: string[], s: string) => {
+  const syncUrl = (t: Tab, tags: string[], s: string, threeD: boolean) => {
     const p = new URLSearchParams();
     if (t !== 'works') p.set('tab', t);
     if (s) p.set('q', s);
     if (tags.length) p.set('tags', tags.join(','));
+    if (t === 'works' && threeD) p.set('has3d', '1');
     setParams(p, { replace: true });
   };
 
-  const changeTab = (t: Tab) => syncUrl(t, selectedTags, search);
+  const changeTab = (t: Tab) => syncUrl(t, selectedTags, search, has3d);
 
   const toggleTag = (tag: string) => {
     const next = selectedTags.includes(tag)
       ? selectedTags.filter((x) => x !== tag)
       : [...selectedTags, tag];
-    syncUrl(tab, next, search);
+    syncUrl(tab, next, search, has3d);
   };
+
+  const toggle3D = () => syncUrl(tab, selectedTags, search, !has3d);
 
   const changeCategory = (c: string) => {
     const next = category === c ? '' : c;
@@ -143,6 +149,7 @@ export default function Home() {
           tags: selectedTags.length ? selectedTags.join(',') : undefined,
           category: next || undefined,
           mine: mine ? true : undefined,
+          has3d: tab === 'works' && has3d ? true : undefined,
           page: 1,
           pageSize: 20,
         },
@@ -160,6 +167,7 @@ export default function Home() {
     const p = new URLSearchParams(params);
     p.delete('q');
     p.delete('mine');
+    p.delete('has3d');
     setParams(p, { replace: true });
   };
 
@@ -185,6 +193,16 @@ export default function Home() {
               </button>
             ))}
           </div>
+          {tab === 'works' && (
+            <button
+              type="button"
+              className={`chip ${has3d ? 'selected' : ''} selectable`}
+              onClick={toggle3D}
+              style={{ marginLeft: 4 }}
+            >
+              3D
+            </button>
+          )}
           {user && (
             <Link to={currentTab.create} className="btn btn-primary btn-sm">
               ＋ 新建{currentTab.label}

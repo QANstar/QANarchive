@@ -34,12 +34,23 @@ public record AuthorInfo(string Id, string Name);
 
 public record MediaDto(string Id, string Url, string Type, int SortOrder, long Size);
 
+public record WorkAssetDto(
+    string Id,
+    string Type,
+    string FileUrl,
+    string DownloadUrl,
+    string? PreviewUrl,
+    string OriginalName,
+    int SortOrder,
+    long Size);
+
 public record WorkListItem(
     string Id,
     string Title,
     string? Intro,
     string? CoverUrl,
     bool HasVideo,
+    bool Has3D,
     List<string> Tags,
     AuthorInfo Author,
     int MediaCount,
@@ -57,6 +68,7 @@ public record WorkDetail(
     string? WorkflowJson,
     string? CoverUrl,
     List<MediaDto> MediaItems,
+    List<WorkAssetDto> Assets,
     List<string> Tags,
     List<CharacterRef> Characters,
     List<PartRef> Parts,

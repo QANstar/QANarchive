@@ -17,7 +17,12 @@ export function WorkCard({ work }: { work: WorkListItem }) {
             </svg>
           </div>
         )}
-        {work.hasVideo && <span className="card-video-badge">视频</span>}
+        {(work.has3d || work.hasVideo) && (
+          <div className="card-badges">
+            {work.has3d && <span className="card-3d-badge">3D</span>}
+            {work.hasVideo && <span className="card-video-badge">视频</span>}
+          </div>
+        )}
       </div>
       <div className="card-body">
         <div className="card-title">{work.title}</div>

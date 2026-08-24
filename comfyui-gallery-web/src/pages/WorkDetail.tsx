@@ -1,10 +1,14 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { api, errorMessage } from '../api/client';
-import type { WorkDetail as WorkDetailType, MediaDto } from '../api/types';
+import { api, errorMessage, downloadFile } from '../api/client';
+import type { WorkDetail as WorkDetailType, MediaDto, WorkAssetDto } from '../api/types';
 import { PromptBlock } from '../components/PromptBlock';
 import TagChips from '../components/TagChips';
 import { useAuth } from '../auth/AuthContext';
+
+const Model3DViewer = lazy(() => import('../components/Model3DViewer'));
+
+const ASSET_TYPE_LABEL: Record<string, string> = { fbx: 'FBX', blend: 'Blender', zip: '压缩包' };
 
 export default function WorkDetail() {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +18,7 @@ export default function WorkDetail() {
   const [notFound, setNotFound] = useState(false);
   const [active, setActive] = useState<MediaDto | null>(null);
   const [workflowOpen, setWorkflowOpen] = useState(false);
+  const [previewAssetId, setPreviewAssetId] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
 
   useEffect(() => {
@@ -39,6 +44,14 @@ export default function WorkDetail() {
       navigate('/');
     } catch (err) {
       setMsg(errorMessage(err));
+    }
+  };
+
+  const handleDownloadAsset = async (a: WorkAssetDto) => {
+    try {
+      await downloadFile(a.downloadUrl, a.originalName);
+    } catch (err) {
+      setMsg(errorMessage(err) || '下载失败,请确认已登录');
     }
   };
 
@@ -132,6 +145,51 @@ export default function WorkDetail() {
             <div className="panel-section">
               <h3>标签</h3>
               <TagChips tags={work.tags} color="pink" />
+            </div>
+          )}
+
+          {(work.assets?.length ?? 0) > 0 && (
+            <div className="panel-section">
+              <h3>3D 资源</h3>
+              <div className="asset-list">
+                {work.assets!.map((a) => (
+                  <div key={a.id}>
+                    <div className="asset-row">
+                      {a.previewUrl ? (
+                        <img className="asset-thumb" src={a.previewUrl} alt={a.originalName} loading="lazy" />
+                      ) : (
+                        <div className="asset-thumb placeholder">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 3 4 8v8l8 5 8-5V8z" />
+                            <path d="M12 3v8" />
+                            <path d="m4 8 8 3 8-3" />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="asset-info">
+                        <div className="asset-name">{a.originalName}</div>
+                        <div className="asset-type">{ASSET_TYPE_LABEL[a.type] ?? a.type.toUpperCase()}</div>
+                      </div>
+                      <div className="asset-actions">
+                        {a.type === 'fbx' && (
+                          <button
+                            className={`btn btn-plain btn-sm ${previewAssetId === a.id ? 'active' : ''}`}
+                            onClick={() => setPreviewAssetId(previewAssetId === a.id ? null : a.id)}
+                          >
+                            {previewAssetId === a.id ? '收起' : '预览'}
+                          </button>
+                        )}
+                        <button className="btn btn-plain btn-sm" onClick={() => handleDownloadAsset(a)}>下载</button>
+                      </div>
+                    </div>
+                    {previewAssetId === a.id && a.type === 'fbx' && (
+                      <Suspense fallback={<div className="model3d-status">加载 3D 查看器…</div>}>
+                        <Model3DViewer src={a.fileUrl} />
+                      </Suspense>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

@@ -63,7 +63,10 @@ public static class CharactersEndpoints
                 .Include(c => c.CharacterWorks).ThenInclude(cw => cw.Work)
                     .ThenInclude(w => w!.MediaItems)
                 .Include(c => c.CharacterWorks).ThenInclude(cw => cw.Work)
+                    .ThenInclude(w => w!.Assets)
+                .Include(c => c.CharacterWorks).ThenInclude(cw => cw.Work)
                     .ThenInclude(w => w!.WorkTags).ThenInclude(wt => wt.Tag)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(c => c.Id == id);
             if (character == null) return Results.NotFound();
 

@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Character> Characters => Set<Character>();
     public DbSet<Work> Works => Set<Work>();
     public DbSet<Media> Medias => Set<Media>();
+    public DbSet<WorkAsset> WorkAssets => Set<WorkAsset>();
     public DbSet<Part> Parts => Set<Part>();
     public DbSet<CharacterWork> CharacterWorks => Set<CharacterWork>();
     public DbSet<WorkPart> WorkParts => Set<WorkPart>();
@@ -122,5 +123,16 @@ public class AppDbContext : DbContext
             .WithMany(w => w.MediaItems)
             .HasForeignKey(m => m.WorkId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // WorkAsset → Work 级联删除
+        modelBuilder.Entity<WorkAsset>()
+            .HasOne(a => a.Work)
+            .WithMany(w => w.Assets)
+            .HasForeignKey(a => a.WorkId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // WorkAsset: 排序索引
+        modelBuilder.Entity<WorkAsset>()
+            .HasIndex(a => new { a.WorkId, a.SortOrder });
     }
 }

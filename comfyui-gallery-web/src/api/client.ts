@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const api = axios.create({ baseURL: '/api' });
+export const api = axios.create({ baseURL: 'http://192.168.5.4:19321/api' });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('qan_token');
@@ -23,4 +23,18 @@ api.interceptors.response.use(
 export function errorMessage(err: unknown): string {
   const anyErr = err as { response?: { data?: { error?: string } } };
   return anyErr?.response?.data?.error ?? '请求失败,请稍后再试';
+}
+
+/** 需登录的私有文件下载:经 axios 携带 JWT 取 blob,再触发浏览器下载 */
+export async function downloadFile(url: string, fileName: string): Promise<void> {
+  const res = await api.get<Blob>(url, { responseType: 'blob' });
+  const blob = new Blob([res.data]);
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = objectUrl;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(objectUrl);
 }

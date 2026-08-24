@@ -8,12 +8,24 @@ export interface MediaDto {
   size: number;
 }
 
+export interface WorkAssetDto {
+  id: string;
+  type: string; // fbx | blend | zip
+  fileUrl: string;
+  downloadUrl: string;
+  previewUrl?: string | null;
+  originalName: string;
+  sortOrder: number;
+  size: number;
+}
+
 export interface WorkListItem {
   id: string;
   title: string;
   intro?: string | null;
   coverUrl?: string | null;
   hasVideo: boolean;
+  has3d: boolean;
   tags: string[];
   author: AuthorInfo;
   mediaCount: number;
@@ -31,6 +43,7 @@ export interface WorkDetail {
   workflowJson?: string | null;
   coverUrl?: string | null;
   mediaItems: MediaDto[];
+  assets: WorkAssetDto[];
   tags: string[];
   characters: CharacterRef[];
   parts: PartRef[];

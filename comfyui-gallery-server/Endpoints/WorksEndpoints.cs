@@ -79,9 +79,11 @@ public static class WorksEndpoints
             var work = await db.Works
                 .Include(w => w.User)
                 .Include(w => w.MediaItems)
+                .Include(w => w.Assets)
                 .Include(w => w.WorkTags).ThenInclude(wt => wt.Tag)
                 .Include(w => w.CharacterWorks).ThenInclude(cw => cw.Character)
                 .Include(w => w.WorkParts).ThenInclude(wp => wp.Part)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(w => w.Id == id);
             if (work == null) return Results.NotFound();
 
@@ -169,6 +171,12 @@ public static class WorksEndpoints
             var dir = MediaPaths.WorkDir(mediaRoot, id);
             if (Directory.Exists(dir))
                 Directory.Delete(dir, recursive: true);
+
+            var assetsRoot = Path.Combine(Directory.GetCurrentDirectory(),
+                config.GetValue<string>("Storage:AssetsDir") ?? "storage/assets");
+            var assetDir = Path.Combine(assetsRoot, "works", id);
+            if (Directory.Exists(assetDir))
+                Directory.Delete(assetDir, recursive: true);
 
             db.Works.Remove(work);
             await db.SaveChangesAsync();
@@ -295,6 +303,183 @@ public static class WorksEndpoints
             return Results.Ok(new { updated = true });
         }).RequireAuthorization();
 
+        // ─── 上传 3D 资源(源文件 + 配对预览图) ───
+        group.MapPost("/{id}/assets", async (
+            HttpContext http,
+            AppDbContext db,
+            IConfiguration config,
+            string id) =>
+        {
+            var userId = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) return Results.Unauthorized();
+
+            var work = await db.Works.FirstOrDefaultAsync(w => w.Id == id && w.UserId == userId);
+            if (work == null) return Results.NotFound();
+
+            var assetFile = http.Request.Form.Files.FirstOrDefault(f => f.Name == "asset")
+                ?? http.Request.Form.Files.FirstOrDefault();
+            var previewFile = http.Request.Form.Files.FirstOrDefault(f => f.Name == "preview");
+            if (assetFile == null)
+                return Results.BadRequest(new { error = "未收到 3D 资源文件" });
+
+            var assetType = UploadRules.DetectAssetType(assetFile.FileName);
+            if (assetType == "unknown")
+                return Results.BadRequest(new { error = $"不支持的 3D 资源类型: {assetFile.FileName}(仅支持 fbx / blend / zip)" });
+            if (assetFile.Length > UploadRules.MaxAssetSize(assetType))
+                return Results.BadRequest(new { error = $"{assetType} 资源超过大小限制: {assetFile.FileName}" });
+
+            if (previewFile != null)
+            {
+                if (UploadRules.DetectType(previewFile.FileName) != "image")
+                    return Results.BadRequest(new { error = "预览图必须是图片" });
+                if (previewFile.Length > UploadRules.MaxImageSize)
+                    return Results.BadRequest(new { error = "预览图超过 50MB 限制" });
+            }
+
+            var mediaRoot = Path.Combine(Directory.GetCurrentDirectory(),
+                config.GetValue<string>("Storage:MediaDir") ?? "storage/media");
+            var assetsRoot = Path.Combine(Directory.GetCurrentDirectory(),
+                config.GetValue<string>("Storage:AssetsDir") ?? "storage/assets");
+
+            var asset = new WorkAsset
+            {
+                WorkId = id,
+                AssetType = assetType,
+                OriginalName = Path.GetFileName(assetFile.FileName)
+            };
+            var sourceDir = MediaPaths.AssetSourceDir(assetsRoot, id, asset.Id);
+            Directory.CreateDirectory(sourceDir);
+            var sourceName = $"{Guid.NewGuid():N}{Path.GetExtension(assetFile.FileName)}";
+            await using (var stream = File.Create(Path.Combine(sourceDir, sourceName)))
+                await assetFile.CopyToAsync(stream);
+            asset.FileName = sourceName;
+            asset.Size = assetFile.Length;
+
+            if (previewFile != null)
+            {
+                var previewDir = MediaPaths.AssetPreviewDir(mediaRoot, id, asset.Id);
+                Directory.CreateDirectory(previewDir);
+                var previewName = $"preview_{Guid.NewGuid():N}{Path.GetExtension(previewFile.FileName)}";
+                await using (var stream = File.Create(Path.Combine(previewDir, previewName)))
+                    await previewFile.CopyToAsync(stream);
+                asset.PreviewFileName = previewName;
+            }
+
+            var nextOrder = await db.WorkAssets
+                .Where(a => a.WorkId == id)
+                .Select(a => (int?)a.SortOrder)
+                .MaxAsync() ?? -1;
+            asset.SortOrder = nextOrder + 1;
+
+            db.WorkAssets.Add(asset);
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new[] { BuildAssetDto(asset, work.Id) });
+        }).RequireAuthorization();
+
+        // ─── 删除单个 3D 资源 ───
+        group.MapDelete("/{id}/assets/{assetId}", async (
+            HttpContext http,
+            AppDbContext db,
+            IConfiguration config,
+            string id,
+            string assetId) =>
+        {
+            var userId = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) return Results.Unauthorized();
+
+            var work = await db.Works.FirstOrDefaultAsync(w => w.Id == id && w.UserId == userId);
+            if (work == null) return Results.NotFound();
+
+            var asset = await db.WorkAssets.FirstOrDefaultAsync(a => a.Id == assetId && a.WorkId == id);
+            if (asset == null) return Results.NotFound();
+
+            var mediaRoot = Path.Combine(Directory.GetCurrentDirectory(),
+                config.GetValue<string>("Storage:MediaDir") ?? "storage/media");
+            var assetsRoot = Path.Combine(Directory.GetCurrentDirectory(),
+                config.GetValue<string>("Storage:AssetsDir") ?? "storage/assets");
+
+            var sourceDir = MediaPaths.AssetSourceDir(assetsRoot, id, asset.Id);
+            if (Directory.Exists(sourceDir))
+                Directory.Delete(sourceDir, recursive: true);
+
+            var previewDir = MediaPaths.AssetPreviewDir(mediaRoot, id, asset.Id);
+            if (Directory.Exists(previewDir))
+                Directory.Delete(previewDir, recursive: true);
+
+            db.WorkAssets.Remove(asset);
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new { deleted = true });
+        }).RequireAuthorization();
+
+        // ─── 调整 3D 资源顺序 ───
+        group.MapPut("/{id}/assets/order", async (
+            HttpContext http,
+            AppDbContext db,
+            string id,
+            List<AssetOrderItem> req) =>
+        {
+            var userId = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) return Results.Unauthorized();
+
+            var work = await db.Works.FirstOrDefaultAsync(w => w.Id == id && w.UserId == userId);
+            if (work == null) return Results.NotFound();
+
+            foreach (var item in req)
+            {
+                var asset = await db.WorkAssets.FirstOrDefaultAsync(a => a.Id == item.AssetId && a.WorkId == id);
+                if (asset != null)
+                    asset.SortOrder = item.SortOrder;
+            }
+            await db.SaveChangesAsync();
+            return Results.Ok(new { updated = true });
+        }).RequireAuthorization();
+
+        // ─── 3D 资源源文件原始字节(供查看器) ───
+        group.MapGet("/{id}/assets/{assetId}/file", async (
+            HttpContext http,
+            AppDbContext db,
+            IConfiguration config,
+            string id,
+            string assetId) =>
+        {
+            var work = await db.Works.FirstOrDefaultAsync(w => w.Id == id);
+            if (work == null) return Results.NotFound();
+
+            var asset = await db.WorkAssets.FirstOrDefaultAsync(a => a.Id == assetId && a.WorkId == id);
+            if (asset == null) return Results.NotFound();
+
+            var assetsRoot = Path.Combine(Directory.GetCurrentDirectory(),
+                config.GetValue<string>("Storage:AssetsDir") ?? "storage/assets");
+            var fullPath = Path.Combine(MediaPaths.AssetSourceDir(assetsRoot, id, asset.Id), asset.FileName);
+            if (!File.Exists(fullPath)) return Results.NotFound();
+
+            return Results.File(fullPath, "application/octet-stream", enableRangeProcessing: true);
+        }).RequireAuthorization();
+
+        // ─── 下载 3D 资源(原始文件名) ───
+        group.MapGet("/{id}/assets/{assetId}/download", async (
+            HttpContext http,
+            AppDbContext db,
+            IConfiguration config,
+            string id,
+            string assetId) =>
+        {
+            var work = await db.Works.FirstOrDefaultAsync(w => w.Id == id);
+            if (work == null) return Results.NotFound();
+
+            var asset = await db.WorkAssets.FirstOrDefaultAsync(a => a.Id == assetId && a.WorkId == id);
+            if (asset == null) return Results.NotFound();
+
+            var assetsRoot = Path.Combine(Directory.GetCurrentDirectory(),
+                config.GetValue<string>("Storage:AssetsDir") ?? "storage/assets");
+            var fullPath = Path.Combine(MediaPaths.AssetSourceDir(assetsRoot, id, asset.Id), asset.FileName);
+            if (!File.Exists(fullPath)) return Results.NotFound();
+
+            return Results.File(fullPath, "application/octet-stream", asset.OriginalName, enableRangeProcessing: true);
+        }).RequireAuthorization();
+
         // ─── 上传封面(视频作品手动封面) ───
         group.MapPost("/{id}/cover", async (
             HttpContext http,
@@ -387,19 +572,28 @@ public static class WorksEndpoints
             .Where(m => m.Type == "image")
             .OrderBy(m => m.SortOrder)
             .FirstOrDefault();
-        return firstImage != null ? MediaPaths.WorkUrl(work.Id, firstImage.FileName) : null;
+        if (firstImage != null) return MediaPaths.WorkUrl(work.Id, firstImage.FileName);
+        var firstAsset = work.Assets
+            .Where(a => !string.IsNullOrEmpty(a.PreviewFileName))
+            .OrderBy(a => a.SortOrder)
+            .FirstOrDefault();
+        return firstAsset?.PreviewFileName != null
+            ? MediaPaths.AssetPreviewUrl(work.Id, firstAsset.Id, firstAsset.PreviewFileName)
+            : null;
     }
 
     public static WorkListItem BuildListItem(Work work)
     {
         var tags = work.WorkTags.Select(wt => wt.Tag!.Name).OrderBy(n => n).ToList();
         var hasVideo = work.MediaItems.Any(m => m.Type == "video");
+        var has3D = work.Assets.Any();
         return new WorkListItem(
             work.Id,
             work.Title,
             work.Intro,
             EffectiveCoverUrl(work),
             hasVideo,
+            has3D,
             tags,
             new AuthorInfo(work.UserId, work.User?.UserName ?? ""),
             work.MediaItems.Count,
@@ -438,6 +632,11 @@ public static class WorksEndpoints
                     : null))
             .ToList();
 
+        var assets = work.Assets
+            .OrderBy(a => a.SortOrder)
+            .Select(a => BuildAssetDto(a, work.Id))
+            .ToList();
+
         return new WorkDetail(
             work.Id,
             work.Title,
@@ -446,6 +645,7 @@ public static class WorksEndpoints
             work.WorkflowJson,
             EffectiveCoverUrl(work),
             mediaItems,
+            assets,
             tags,
             characters,
             parts,
@@ -453,6 +653,23 @@ public static class WorksEndpoints
             work.CreatedAt,
             work.UpdatedAt);
     }
+
+    public static WorkAssetDto BuildAssetDto(WorkAsset asset, string workId)
+    {
+        return new WorkAssetDto(
+            asset.Id,
+            asset.AssetType,
+            MediaPaths.AssetFileUrl(workId, asset.Id),
+            MediaPaths.AssetDownloadUrl(workId, asset.Id),
+            asset.PreviewFileName != null
+                ? MediaPaths.AssetPreviewUrl(workId, asset.Id, asset.PreviewFileName)
+                : null,
+            asset.OriginalName,
+            asset.SortOrder,
+            asset.Size);
+    }
 }
 
 public record MediaOrderItem(string MediaId, int SortOrder);
+
+public record AssetOrderItem(string AssetId, int SortOrder);
