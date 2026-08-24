@@ -5,8 +5,9 @@ import type { CharacterRef, PartRef, WorkDetail, MediaDto, WorkAssetDto } from '
 import TagPicker from '../components/TagPicker';
 import Uploader from '../components/Uploader';
 import AssetUploader from '../components/AssetUploader';
+import ImageCropper from '../components/ImageCropper';
 
-interface PendingAsset { asset: File; preview: File | null }
+interface PendingAsset { asset: File }
 
 export default function WorkEdit() {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +34,8 @@ export default function WorkEdit() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [loaded, setLoaded] = useState(!isEdit);
+  const [coverSrc, setCoverSrc] = useState<string | null>(null); // 缩略图裁剪源
+  const coverObjectUrlRef = useRef<string | null>(null);
   const workIdRef = useRef<string | null>(id ?? null);
   const jsonFileRef = useRef<HTMLInputElement>(null);
 
@@ -80,23 +83,23 @@ export default function WorkEdit() {
       pendingFiles.forEach((f) => fd.append('files', f));
       await api.post(`/works/${workId}/media`, fd);
     }
-    for (const p of pendingAssets) {
-      const fd = new FormData();
-      fd.append('asset', p.asset);
-      if (p.preview) fd.append('preview', p.preview);
-      await api.post(`/works/${workId}/assets`, fd);
+    if (workType === '3d') {
+      for (const p of pendingAssets) {
+        const fd = new FormData();
+        fd.append('asset', p.asset);
+        await api.post(`/works/${workId}/assets`, fd);
+      }
     }
   };
 
-  const handleUploadAsset = async (assetFile: File, preview: File | null) => {
+  const handleUploadAsset = async (assetFile: File) => {
     if (!workIdRef.current) {
-      setPendingAssets((p) => [...p, { asset: assetFile, preview }]);
+      setPendingAssets((p) => [...p, { asset: assetFile }]);
       return;
     }
     try {
       const fd = new FormData();
       fd.append('asset', assetFile);
-      if (preview) fd.append('preview', preview);
       const res = await api.post<WorkAssetDto[]>(`/works/${workIdRef.current}/assets`, fd);
       setAssets((p) => [...p, ...res.data]);
     } catch (err) {
@@ -201,25 +204,38 @@ export default function WorkEdit() {
     }
   };
 
-  const setAsCover = async (m: MediaDto) => {
-    if (!workIdRef.current || m.type !== 'image') return;
-    try {
-      const res = await api.put<{ coverUrl: string }>(`/works/${workIdRef.current}/cover/${m.id}`);
-      setCover(res.data.coverUrl);
-    } catch (err) {
-      setMsg(errorMessage(err));
+  // ─── 缩略图(封面)裁剪 ───
+  const startCoverCrop = (url: string) => setCoverSrc(url);
+
+  const pickCoverFile = (files: File[]) => {
+    const f = files[0];
+    if (!f) return;
+    if (coverObjectUrlRef.current) URL.revokeObjectURL(coverObjectUrlRef.current);
+    const url = URL.createObjectURL(f);
+    coverObjectUrlRef.current = url;
+    setCoverSrc(url);
+  };
+
+  const cancelCoverCrop = () => {
+    setCoverSrc(null);
+    if (coverObjectUrlRef.current) {
+      URL.revokeObjectURL(coverObjectUrlRef.current);
+      coverObjectUrlRef.current = null;
     }
   };
 
-  const uploadCover = async (files: File[]) => {
-    if (!workIdRef.current || !files.length) return;
+  const handleCoverCrop = async (blob: Blob) => {
+    if (!workIdRef.current) return;
     try {
       const fd = new FormData();
-      fd.append('file', files[0]);
+      fd.append('file', new File([blob], 'cover.jpg', { type: 'image/jpeg' }));
       const res = await api.post<{ coverUrl: string }>(`/works/${workIdRef.current}/cover`, fd);
       setCover(res.data.coverUrl);
+      setMsg('');
     } catch (err) {
       setMsg(errorMessage(err));
+    } finally {
+      cancelCoverCrop();
     }
   };
 
@@ -348,7 +364,7 @@ export default function WorkEdit() {
 
         {/* 媒体管理(创建=暂存,编辑=上传) */}
         <div className="field">
-          <label>媒体文件(图片 / 视频)</label>
+          <label>媒体文件(图片 / 视频,用于内容与封面裁剪)</label>
           {media.length > 0 && (
             <div className="media-grid" style={{ marginBottom: 14 }}>
               {media.map((m) => (
@@ -356,8 +372,8 @@ export default function WorkEdit() {
                   {m.type === 'video' ? <video src={m.url} muted /> : <img src={m.url} alt="" />}
                   <button type="button" className="tile-remove" onClick={() => removeMedia(m)} title="删除">✕</button>
                   {m.type === 'image' && (
-                    <button type="button" className="tile-cover" onClick={() => setAsCover(m)} title="设为封面">
-                      {cover === m.url ? '★ 封面' : '设为封面'}
+                    <button type="button" className="tile-cover" onClick={() => startCoverCrop(m.url)} title="设为封面(裁剪)">
+                      设为封面
                     </button>
                   )}
                   <span className="tile-type">{m.type === 'video' ? '视频' : '图片'}</span>
@@ -366,40 +382,46 @@ export default function WorkEdit() {
             </div>
           )}
           <Uploader accept="image/*,video/mp4,video/webm" hint="图片 ≤50MB,视频 ≤500MB,可多选" onFiles={handleUpload} />
-          {isEdit && (
-            <div style={{ marginTop: 12 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>视频封面(纯视频作品需手动上传)</label>
-              <Uploader accept="image/*" multiple={false} hint="上传一张图片作为卡片封面" onFiles={uploadCover} />
-            </div>
-          )}
+          <div style={{ marginTop: 12 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>封面缩略图(选图后裁剪)</label>
+            <Uploader accept="image/*" multiple={false} hint="上传一张图片并裁剪作为卡片缩略图" onFiles={pickCoverFile} />
+            {cover && (
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="hint">当前缩略图:</span>
+                <img src={cover} alt="" style={{ width: 120, borderRadius: 10, border: '1px solid var(--hairline)' }} />
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* 3D 资源管理(创建=暂存,编辑=上传) */}
-        <div className="field">
-          <label>3D 资源(fbx / blend / zip)</label>
-          {assets.length > 0 && (
-            <div className="asset-list" style={{ marginBottom: 14 }}>
-              {assets.map((a) => (
-                <div key={a.id} className="asset-row">
-                  {a.previewUrl ? (
-                    <img className="asset-thumb" src={a.previewUrl} alt="" loading="lazy" />
-                  ) : (
-                    <div className="asset-thumb placeholder">3D</div>
-                  )}
-                  <div className="asset-info">
-                    <div className="asset-name">{a.originalName}</div>
-                    <div className="asset-type">{a.type.toUpperCase()}</div>
+        {/* 3D 资源管理(仅 3D 作品;创建=暂存,编辑=上传) */}
+        {workType === '3d' && (
+          <div className="field">
+            <label>3D 资源(fbx / blend / zip)</label>
+            {assets.length > 0 && (
+              <div className="asset-list" style={{ marginBottom: 14 }}>
+                {assets.map((a) => (
+                  <div key={a.id} className="asset-row">
+                    {a.previewUrl ? (
+                      <img className="asset-thumb" src={a.previewUrl} alt="" loading="lazy" />
+                    ) : (
+                      <div className="asset-thumb placeholder">3D</div>
+                    )}
+                    <div className="asset-info">
+                      <div className="asset-name">{a.originalName}</div>
+                      <div className="asset-type">{a.type.toUpperCase()}</div>
+                    </div>
+                    <div className="asset-actions">
+                      <button type="button" className="btn btn-plain btn-sm" onClick={() => downloadAsset(a)}>下载</button>
+                      <button type="button" className="btn btn-plain btn-sm" onClick={() => removeAsset(a)}>删除</button>
+                    </div>
                   </div>
-                  <div className="asset-actions">
-                    <button type="button" className="btn btn-plain btn-sm" onClick={() => downloadAsset(a)}>下载</button>
-                    <button type="button" className="btn btn-plain btn-sm" onClick={() => removeAsset(a)}>删除</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          <AssetUploader onFiles={handleUploadAsset} />
-        </div>
+                ))}
+              </div>
+            )}
+            <AssetUploader onFiles={handleUploadAsset} />
+          </div>
+        )}
 
         {/* 创建模式:暂存待上传文件 */}
         {!isEdit && pendingFiles.length > 0 && (
@@ -433,6 +455,10 @@ export default function WorkEdit() {
             {saving ? '保存中…' : (isEdit ? '保存修改' : '创建作品')}
           </button>
         </div>
+
+        {coverSrc && (
+          <ImageCropper src={coverSrc} aspectRatio={4 / 3} title="裁剪缩略图" onCancel={cancelCoverCrop} onConfirm={handleCoverCrop} />
+        )}
       </form>
     </div>
   );

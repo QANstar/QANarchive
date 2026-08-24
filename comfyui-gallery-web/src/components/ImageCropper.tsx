@@ -5,6 +5,8 @@ interface ImageCropperProps {
   src: string;
   /** 裁剪框宽高比 = width / height,例如 3/4 表示竖版 */
   aspectRatio?: number;
+  /** 裁剪弹窗标题 */
+  title?: string;
   onCancel: () => void;
   /** 裁剪完成后把裁剪区域导出为图片 */
   onConfirm: (blob: Blob) => void;
@@ -13,7 +15,7 @@ interface ImageCropperProps {
 const MIN_W = 48; // 裁剪框最小宽度(显示像素)
 const MAX_BOX = 520; // 图片最大显示尺寸
 
-export default function ImageCropper({ src, aspectRatio = 3 / 4, onCancel, onConfirm }: ImageCropperProps) {
+export default function ImageCropper({ src, aspectRatio = 3 / 4, title = '裁剪预览图', onCancel, onConfirm }: ImageCropperProps) {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [view, setView] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const [crop, setCrop] = useState({ x: 0, y: 0, w: 0 });
@@ -95,7 +97,7 @@ export default function ImageCropper({ src, aspectRatio = 3 / 4, onCancel, onCon
   return (
     <div className="crop-overlay">
       <div className="crop-card">
-        <div className="crop-head">裁剪角色预览图</div>
+        <div className="crop-head">{title}</div>
         <div className="crop-body">
           {!img ? (
             <div className="loading-row"><div className="spinner" /></div>

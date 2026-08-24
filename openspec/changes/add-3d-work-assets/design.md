@@ -35,27 +35,27 @@ Work (1) ──< Media(图片/视频,既有)     ── 展示媒体
 - `WorkAsset` 字段:`Id`、`WorkId`(FK,级联删除)、`AssetType`(`fbx`|`blend`|`zip`)、`FileName`(存储名)、`OriginalName`(原始文件名,用于下载)、`PreviewFileName`、`SortOrder`、`Size`、`CreatedAt`。
 - `Work.Assets` 导航属性;EF 配置 `OnDelete(Cascade)`。
 
-### D2: 存储布局与 URL(源文件私有、预览图公开)
+### D2: 存储布局与 URL(源文件私有、缩略图走图片媒体)
 
 ```
 // 3D 源文件 —— 私有,不经 /media 静态映射
 storage/assets/works/{workId}/{assetGuid}/{guid}.fbx   (或 .blend / .zip)
 
-// 3D 预览图 —— 公开,经 /media 静态路由
-storage/media/works/{workId}/assets/{assetGuid}/preview_{guid}.png
+// 作品缩略图(封面)+ 图片媒体 —— 公开,经 /media 静态路由
+storage/media/works/{workId}/{imgGuid}.png / cover_{guid}.png
 ```
 
-- 源文件与预览图记录一一对应(同 `assetGuid`),删除时一并清理。
-- **源文件存放于独立 `storage/assets/` 根,不加入 `/media` 静态映射**,因此未登录无法通过 URL 直接访问;仅通过授权端点返回(`/file` 原始字节、`/download` 附件+原始文件名)。
-- **预览图存放于 `storage/media/.../assets/`**,经 `/media` 公开,供画廊卡片、列表与详情页渲染。
+- **3D 资源不再单独上传预览图**,只存源文件;作品的缩略图(封面)取自其图片媒体或裁剪产物。
+- **源文件存放于独立 `storage/assets/` 根,不加入 `/media` 静态映射**,未登录无法直接访问;仅通过授权端点返回(`/file` 原始字节、`/download` 附件)。
+- **缩略图/图片媒体存于 `storage/media/works/{workId}/`**,经 `/media` 公开,供画廊卡片、列表与详情页渲染。
 - 备选:把源文件也放 `/media` 下再以中间件拦截——鉴权路径判断复杂;采用独立根目录,安全边界清晰。
 
 ### D3: 上传规则与大小上限
 
 - `UploadRules` 扩展:`AssetExtensions = { .fbx, .blend, .zip }`,`DetectAssetType(ext)` 返回 `fbx`/`blend`/`zip`。
 - 大小上限:`fbx ≤ 200MB`,`blend ≤ 900MB`,`zip ≤ 900MB`;multipart 总请求体与 Kestrel `MaxRequestBodySize` 维持 1GB。
-- 预览图沿用图片规则(jpg/png/webp/gif ≤ 50MB)。
-- 一次上传请求 `POST /api/works/{id}/assets` 同时携带 `asset`(源文件)+ `preview`(预览图),配对保存。
+- 一次上传请求 `POST /api/works/{id}/assets` 只携带 `asset`(源文件),不传预览图。
+- 2D 作品禁止上传 3D 资源(后端拦截,400);含 3D 资源的作品改为 2D 被拒(400)。
 - 扩展:如需 >1GB 的单个资源,当前不做分片上传,记录为 Open Question。
 
 ### D4: FBX 浏览器内预览(best-effort)
@@ -69,35 +69,41 @@ storage/media/works/{workId}/assets/{assetGuid}/preview_{guid}.png
 
 ### D5: DTO 与 API
 
-- `WorkAssetDto(Id, Type, FileUrl, DownloadUrl, PreviewUrl, OriginalName, SortOrder, Size)`。其中 `FileUrl` 指向需登录的文件端点,`DownloadUrl` 指向下载端点,`PreviewUrl` 为公开的 `/media` 预览图。
-- `WorkDetail` 新增 `Assets: List<WorkAssetDto>`。
-- `WorkListItem` 新增 `Has3D: bool`(以及可选 `AssetCount`)。
-- 端点(源文件/下载均需登录,预览图公开):
-  - `POST /api/works/{id}/assets` —— `RequireAuthorization`,上传(源文件 + 预览图)
-  - `DELETE /api/works/{id}/assets/{assetId}` —— `RequireAuthorization`,删除(源文件 + 预览图)
+- `WorkAssetDto(Id, Type, FileUrl, DownloadUrl, PreviewUrl, OriginalName, SortOrder, Size)`。其中 `FileUrl` 指向需登录的文件端点,`DownloadUrl` 指向下载端点;`PreviewUrl` 恒为 `null`(3D 资源不再有独立预览图)。
+- `WorkDetail` 新增 `Assets: List<WorkAssetDto>`;`WorkDetail`/`WorkListItem` 返回 `Type`。
+- `WorkListItem` 新增 `Has3D: bool`(由 `Type == "3d"` 决定)。
+- 端点(源文件/下载均需登录):
+  - `POST /api/works/{id}/assets` —— `RequireAuthorization`,上传源文件(2D 作品被拒)
+  - `DELETE /api/works/{id}/assets/{assetId}` —— `RequireAuthorization`,删除源文件
   - `PUT /api/works/{id}/assets/order` —— `RequireAuthorization`,排序
   - `GET /api/works/{id}/assets/{assetId}/file` —— `RequireAuthorization`,返回源文件原始字节(供 3D 查看器)
   - `GET /api/works/{id}/assets/{assetId}/download` —— `RequireAuthorization`,以原始文件名作为附件下载
-  - 预览图 —— 公开 `/media` 静态路由,无鉴权
-- `WorksEndpoints.EffectiveCoverUrl` 回退链:显式封面 → 第一张 `image` → 第一个 3D 资源预览图 → `null`。
+- `WorksEndpoints.EffectiveCoverUrl` 回退链:显式封面(裁剪产物)→ 第一张 `image` → `null`(不再回退到 3D 资源预览图)。
 
-### D6: 画廊筛选与徽标
+### D6: 统一缩略图(封面裁剪)
+
+- 作品封面即缩略图,2D/3D 共用一套:选图后经 `ImageCropper` 裁剪,`POST /api/works/{id}/cover` 存为 `cover_*` 文件;未显式设置时回退到第一张图片。
+- 前端在图片「设为封面」与手动上传封面时弹出裁剪;裁剪产物作为 `CoverFileName`。
+
+### D7: 画廊筛选与徽标
 
 - `WorkCard` 在 `hasVideo` 徽标同槽位渲染 `has3d` 的「3D」徽标。
-- `GalleryEndpoints.BrowseWorksAsync` 新增 `kind`(或 `has3d`)查询参数;为 `true` 时仅返回 `Work.Assets.Any()` 的作品。
+- `GalleryEndpoints.BrowseWorksAsync` 新增 `has3d` 查询参数;为 `true` 时仅返回 `Work.Type == "3d"` 的作品。
 - 作品 tab 内新增「3D」筛选 chip,与既有热门标签 chips 并列。
 
-### D7: 迁移与数据库
+### D8: 迁移与数据库
 
 - 新增 `WorkAssets` 表 + `Work.Assets` 导航;经 EF `Database.Migrate()` 增量迁移(一次 `_Migrate` 重放),不破坏既有 `Works`/`Medias` 数据。
+- `AddWorkType` 迁移为 `Works` 增加 `Type` 列并把既有行回填 `"2d"`。
 - 删除作品时级联删除其全部 `WorkAsset` 及其磁盘目录。
 
-### D8: 作品类型与 3D 资源创建
+### D9: 作品类型与 3D 资源创建
 
-- `Work` 新增 `Type` 字段(`"2d"` / `"3d"`,默认 `"2d"`;`AddWorkType` 迁移把既有行回填 `"2d"`),在创建/编辑时由用户选择。
-- 3D 作品:前端隐藏「Prompt」与「ComfyUI 工作流 JSON」字段,`Prompt` 允许为空(后端仅对 2D 强制 `prompt` 非空);无需再造工作流。
+- `Work` 新增 `Type` 字段(`"2d"` / `"3d"`,默认 `"2d"`),在创建/编辑时由用户选择。
+- 3D 作品:前端隐藏「Prompt」与「ComfyUI 工作流 JSON」字段,`Prompt` 允许为空(后端仅对 2D 强制 `prompt` 非空)。
+- 2D 作品:前端隐藏「3D 资源」区块;后端禁止向 2D 作品上传 3D 资源,且含 3D 资源的作品不能改为 2D。
 - `WorkListItem` / `WorkDetail` 返回 `Type`;`Has3D` 由 `Type == "3d"` 决定,画廊 `has3d` 筛选也改为 `Type == "3d"`。
-- 3D 资源上传在**创建与编辑模式**都可用:创建模式先暂存(资源文件 + 预览图),作品创建后统一上传;编辑模式即时上传。媒体(图片/视频)同理。
+- 3D 资源上传在**创建与编辑模式**都可用:创建模式先暂存(只存源文件),作品创建后统一上传;编辑模式即时上传。媒体(图片/视频)在 2D/3D 都可用。
 
 
 ## Risks / Trade-offs

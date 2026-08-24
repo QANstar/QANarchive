@@ -2,26 +2,26 @@
 
 ### Requirement: 上传3D资源
 
-系统 SHALL 允许已登录用户为作品上传 3D 源文件,支持 fbx / blender(.blend) / 压缩包(zip);每个资源须配对一张预览图,一次上传请求同时携带源文件与预览图。
+系统 SHALL 允许已登录用户为 3D 类型作品上传 3D 源文件,支持 fbx / blender(.blend) / 压缩包(zip);每个资源只上传源文件,不再单独上传预览图。
 
 #### Scenario: 上传fbx资源
 
-- **WHEN** 用户上传 .fbx 文件并配对其预览图
+- **WHEN** 用户上传 .fbx 文件
 - **THEN** 系统保存资源,作品详情页提供该 fbx 的浏览器内交互预览
 
 #### Scenario: 上传blender源文件
 
-- **WHEN** 用户上传 .blend 文件并配对其预览图
-- **THEN** 系统保存资源,详情页仅展示预览图并提供下载,不提供交互预览
+- **WHEN** 用户上传 .blend 文件
+- **THEN** 系统保存资源,详情页提供下载,不提供交互预览
 
 #### Scenario: 上传zip压缩包
 
-- **WHEN** 用户上传 .zip 压缩包(含完整资源)并配对其预览图
-- **THEN** 系统保存资源,详情页仅展示预览图并提供下载
+- **WHEN** 用户上传 .zip 压缩包(含完整资源)
+- **THEN** 系统保存资源,详情页提供下载
 
 ### Requirement: 3D资源文件类型与大小限制
 
-系统 SHALL 校验 3D 资源文件的扩展名与大小:仅允许 fbx / blend / zip,fbx 单文件 ≤ 200MB,blend 与 zip 单文件 ≤ 900MB,multipart 总请求体 ≤ 1GB;预览图须为图片(jpg/png/webp/gif,单张 ≤ 50MB)。
+系统 SHALL 校验 3D 资源文件的扩展名与大小:仅允许 fbx / blend / zip,fbx 单文件 ≤ 200MB,blend 与 zip 单文件 ≤ 900MB,multipart 总请求体 ≤ 1GB。
 
 #### Scenario: 非法3D类型被拒
 
@@ -33,18 +33,13 @@
 - **WHEN** 用户上传超过对应类型大小上限的 3D 源文件
 - **THEN** 系统拒绝并返回 413 或 400 错误
 
-#### Scenario: 预览图非图片被拒
+### Requirement: 作品缩略图公开访问
 
-- **WHEN** 用户为 3D 资源提供的预览图不是图片类型
-- **THEN** 系统拒绝并返回 400 错误
+系统 SHALL 通过 `/media` 静态路由公开提供作品的缩略图(封面,含图片媒体与裁剪产物),供画廊卡片、列表与详情页渲染,无需登录。
 
-### Requirement: 3D资源预览图公开访问
+#### Scenario: 未登录加载缩略图
 
-系统 SHALL 通过 `/media` 静态路由公开提供 3D 资源的预览图,供画廊卡片、列表与详情页渲染,无需登录。
-
-#### Scenario: 未登录加载预览图
-
-- **WHEN** 客户端请求某个 3D 资源预览图的 URL
+- **WHEN** 客户端请求某个作品缩略图的 URL
 - **THEN** 系统返回该图片,未登录访客可正常显示
 
 ### Requirement: 3D资源源文件需登录

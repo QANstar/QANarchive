@@ -110,6 +110,8 @@ public static class WorksEndpoints
             var type = NormalizeType(req.Type);
             if (type == "2d" && string.IsNullOrWhiteSpace(req.Prompt))
                 return Results.BadRequest(new { error = "prompt 不能为空" });
+            if (type == "2d" && await db.WorkAssets.AnyAsync(a => a.WorkId == id))
+                return Results.BadRequest(new { error = "该作品已有 3D 资源,无法改为 2D;请先删除 3D 资源" });
             if (!string.IsNullOrEmpty(req.WorkflowJson) && req.WorkflowJson.Length > MaxWorkflowJsonLength)
                 return Results.BadRequest(new { error = "工作流 JSON 超过 1MB 限制" });
 
@@ -320,9 +322,11 @@ public static class WorksEndpoints
             var work = await db.Works.FirstOrDefaultAsync(w => w.Id == id && w.UserId == userId);
             if (work == null) return Results.NotFound();
 
+            if (NormalizeType(work.Type) == "2d")
+                return Results.BadRequest(new { error = "2D 作品不能添加 3D 资源" });
+
             var assetFile = http.Request.Form.Files.FirstOrDefault(f => f.Name == "asset")
                 ?? http.Request.Form.Files.FirstOrDefault();
-            var previewFile = http.Request.Form.Files.FirstOrDefault(f => f.Name == "preview");
             if (assetFile == null)
                 return Results.BadRequest(new { error = "未收到 3D 资源文件" });
 
@@ -332,16 +336,6 @@ public static class WorksEndpoints
             if (assetFile.Length > UploadRules.MaxAssetSize(assetType))
                 return Results.BadRequest(new { error = $"{assetType} 资源超过大小限制: {assetFile.FileName}" });
 
-            if (previewFile != null)
-            {
-                if (UploadRules.DetectType(previewFile.FileName) != "image")
-                    return Results.BadRequest(new { error = "预览图必须是图片" });
-                if (previewFile.Length > UploadRules.MaxImageSize)
-                    return Results.BadRequest(new { error = "预览图超过 50MB 限制" });
-            }
-
-            var mediaRoot = Path.Combine(Directory.GetCurrentDirectory(),
-                config.GetValue<string>("Storage:MediaDir") ?? "storage/media");
             var assetsRoot = Path.Combine(Directory.GetCurrentDirectory(),
                 config.GetValue<string>("Storage:AssetsDir") ?? "storage/assets");
 
@@ -358,16 +352,6 @@ public static class WorksEndpoints
                 await assetFile.CopyToAsync(stream);
             asset.FileName = sourceName;
             asset.Size = assetFile.Length;
-
-            if (previewFile != null)
-            {
-                var previewDir = MediaPaths.AssetPreviewDir(mediaRoot, id, asset.Id);
-                Directory.CreateDirectory(previewDir);
-                var previewName = $"preview_{Guid.NewGuid():N}{Path.GetExtension(previewFile.FileName)}";
-                await using (var stream = File.Create(Path.Combine(previewDir, previewName)))
-                    await previewFile.CopyToAsync(stream);
-                asset.PreviewFileName = previewName;
-            }
 
             var nextOrder = await db.WorkAssets
                 .Where(a => a.WorkId == id)
@@ -576,14 +560,7 @@ public static class WorksEndpoints
             .Where(m => m.Type == "image")
             .OrderBy(m => m.SortOrder)
             .FirstOrDefault();
-        if (firstImage != null) return MediaPaths.WorkUrl(work.Id, firstImage.FileName);
-        var firstAsset = work.Assets
-            .Where(a => !string.IsNullOrEmpty(a.PreviewFileName))
-            .OrderBy(a => a.SortOrder)
-            .FirstOrDefault();
-        return firstAsset?.PreviewFileName != null
-            ? MediaPaths.AssetPreviewUrl(work.Id, firstAsset.Id, firstAsset.PreviewFileName)
-            : null;
+        return firstImage != null ? MediaPaths.WorkUrl(work.Id, firstImage.FileName) : null;
     }
 
     public static WorkListItem BuildListItem(Work work)

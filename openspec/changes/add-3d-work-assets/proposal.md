@@ -6,11 +6,13 @@
 
 - 作品(Work)新增**类型(2D / 3D)**:创建/编辑时选择,默认 2D;3D 作品不要求 prompt 与 ComfyUI 工作流 JSON,画廊按类型显示「3D」徽标与筛选。
 - 作品(Work)新增**独立的 3D 资源集合 `assets`**,与现有图片/视频 `mediaItems` 平行、互不干扰;创建与编辑模式均可添加。
-- 每个 3D 资源 = 一个**源文件**(`fbx`/`blend`/`zip`)+ **配对的预览图**;支持排序、单个删除、下载。
-- `fbx` 资源在作品详情页提供**浏览器内 3D 交互预览**(three.js `FBXLoader`);`blend`/`zip` 因浏览器无法渲染,仅提供预览图与下载。
-- **3D 资源源文件(fbx/blend/zip)与下载需登录**(经授权 API 端点,携带 JWT);**预览图保持公开**,公开画廊仍可显示。源文件存于独立 `storage/assets` 根、不经 `/media` 静态映射。
+- 每个 3D 资源 = 一个**源文件**(`fbx`/`blend`/`zip`);支持排序、单个删除、下载;3D 资源**不再单独上传预览图**。
+- `fbx` 资源在作品详情页提供**浏览器内 3D 交互预览**(three.js `FBXLoader`);`blend`/`zip` 因浏览器无法渲染,仅提供下载。
+- 3D 作品可同时**添加图片/视频媒体**(2D 资源)作为内容与封面来源。
+- **2D 作品不能添加 3D 资源**(后端拦截,400);含 3D 资源的作品不能改为 2D。
+- **统一缩略图(封面)**:2D/3D 共用一套,选图后经 `ImageCropper` 裁剪;未显式设置时回退到第一张图片,无图片时用占位符。
+- **3D 资源源文件(fbx/blend/zip)与下载需登录**(经授权 API 端点,携带 JWT);作品缩略图(图片媒体/裁剪产物)公开,经 `/media`。源文件存于独立 `storage/assets` 根、不经 `/media` 静态映射。
 - 画廊中,含 3D 资源的作品卡片展示「3D」徽标;作品 tab 内提供「3D」筛选 chip。
-- 作品封面回退链扩展为:显式封面 → 第一张图片 → 第一个 3D 资源预览图 → 占位符,保证纯 3D 作品也能在瀑布流正常显示。
 - 前端新增 `three` + `@types/three` 依赖,FBX 查看器**懒加载**,不撑大首屏包体。
 
 ## Capabilities
@@ -21,13 +23,13 @@
 
 ### Modified Capabilities
 
-- `works`:作品新增 3D 资源关联(增删/排序)、每个资源的预览图、封面回退到资源预览图。
-- `media`:新增 3D 源文件(fbx/blend/zip)上传规则、大小/类型校验、预览图配对、预览图公开访问与源文件/下载需登录。
+- `works`:作品新增 2D/3D 类型、3D 资源关联(增删/排序,仅 3D 作品)、统一缩略图(封面裁剪),封面回退到第一张图片。
+- `media`:新增 3D 源文件(fbx/blend/zip)上传规则、大小/类型校验、源文件/下载需登录;作品缩略图与图片媒体公开访问。
 - `gallery`:作品卡片「3D」徽标 + 作品 tab 内「3D」筛选。
 
 ## Impact
 
-- 后端:`QANgalleryServer` 新增 `WorkAsset` 模型与 `Work.Assets` 导航属性、EF 迁移、`/api/works/{id}/assets` 系列接口(源文件/下载 `RequireAuthorization`、`/file` 原始字节、`/download` 以原始文件名返回)、存储拆分(源文件私有 `storage/assets/…`、预览图公开 `storage/media/…/assets/…`)、`UploadRules` 扩展 3D 类型与大小上限、`WorkDetail`/`WorkListItem` DTO 扩展。
-- 前端:`comfyui-gallery-web` 新增 `three` 依赖;新建 `Model3DViewer` 组件(FBX 交互预览)与 `AssetUploader`;`WorkEdit` / `WorkDetail` 增加「3D 资源」区块;`WorkCard` 增加「3D」徽标;画廊作品 tab 增加「3D」筛选 chip。
-- 数据库:SQLite 新增 `WorkAssets` 表(级联删除),经 EF `Database.Migrate()` 增量迁移,不破坏既有数据。
+- 后端:`QANgalleryServer` 新增 `WorkAsset` 模型与 `Work.Assets` 导航属性、`Work.Type` + EF 迁移、`/api/works/{id}/assets` 系列接口(源文件/下载 `RequireAuthorization`、`/file` 原始字节、`/download` 以原始文件名返回)、`/cover` 裁剪缩略图、存储(源文件私有 `storage/assets/…`、缩略图/图片媒体公开 `storage/media/…`)、`UploadRules` 扩展 3D 类型与大小上限、`WorkDetail`/`WorkListItem` DTO 扩展。
+- 前端:`comfyui-gallery-web` 新增 `three` 依赖;新建 `Model3DViewer` 组件(FBX 交互预览)与 `AssetUploader`;`WorkEdit` / `WorkDetail` 增加「3D 资源」区块(仅 3D)、统一缩略图裁剪;`WorkCard` 增加「3D」徽标;画廊作品 tab 增加「3D」筛选 chip。
+- 数据库:SQLite 新增 `WorkAssets` 表(级联删除)与 `Works.Type` 列,经 EF `Database.Migrate()` 增量迁移,不破坏既有数据。
 - 无破坏性变更(在既有模型上新增字段与表)。
