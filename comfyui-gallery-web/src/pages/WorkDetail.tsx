@@ -8,7 +8,7 @@ import { useAuth } from '../auth/AuthContext';
 
 const Model3DViewer = lazy(() => import('../components/Model3DViewer'));
 
-const ASSET_TYPE_LABEL: Record<string, string> = { fbx: 'FBX', blend: 'Blender', zip: '压缩包' };
+const ASSET_TYPE_LABEL: Record<string, string> = { fbx: 'FBX', blend: 'Blender', zip: '压缩包', unitypackage: 'Unity Package' };
 
 export default function WorkDetail() {
   const { id } = useParams<{ id: string }>();

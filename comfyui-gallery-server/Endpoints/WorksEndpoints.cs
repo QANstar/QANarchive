@@ -332,7 +332,7 @@ public static class WorksEndpoints
 
             var assetType = UploadRules.DetectAssetType(assetFile.FileName);
             if (assetType == "unknown")
-                return Results.BadRequest(new { error = $"不支持的 3D 资源类型: {assetFile.FileName}(仅支持 fbx / blend / zip)" });
+                return Results.BadRequest(new { error = $"不支持的 3D 资源类型: {assetFile.FileName}(仅支持 fbx / blend / zip / unitypackage)" });
             if (assetFile.Length > UploadRules.MaxAssetSize(assetType))
                 return Results.BadRequest(new { error = $"{assetType} 资源超过大小限制: {assetFile.FileName}" });
 

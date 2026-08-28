@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace QANgalleryServer.Models;
 
-/// <summary>作品的 3D 资源(源文件 fbx/blend/zip + 配对预览图)</summary>
+/// <summary>作品的 3D 资源(源文件 fbx/blend/zip/unitypackage + 配对预览图)</summary>
 public class WorkAsset
 {
     [Key]
@@ -13,9 +13,9 @@ public class WorkAsset
 
     public Work? Work { get; set; }
 
-    /// <summary>资源类型:fbx / blend / zip</summary>
+    /// <summary>资源类型:fbx / blend / zip / unitypackage</summary>
     [Required]
-    [MaxLength(10)]
+    [MaxLength(20)]
     public string AssetType { get; set; } = string.Empty;
 
     /// <summary>源文件存储名(位于私有 storage/assets 根)</summary>

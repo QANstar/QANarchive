@@ -10,7 +10,7 @@ export interface MediaDto {
 
 export interface WorkAssetDto {
   id: string;
-  type: string; // fbx | blend | zip
+  type: string; // fbx | blend | zip | unitypackage
   fileUrl: string;
   downloadUrl: string;
   previewUrl?: string | null;

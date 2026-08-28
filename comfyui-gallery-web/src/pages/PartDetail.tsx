@@ -42,7 +42,7 @@ export default function PartDetail() {
           {part.previewUrl ? (
             <img src={part.previewUrl} alt={part.name} />
           ) : (
-            <div className="grad-ph" style={{ width: '100%', height: '100%', fontSize: 56 }}>✦</div>
+            <div className="grad-ph" style={{ width: '100%', minHeight: 320, fontSize: 56 }}>✦</div>
           )}
         </div>
         <div className="side-panel">

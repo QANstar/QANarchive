@@ -34,7 +34,7 @@ public static class UploadRules
     public static readonly HashSet<string> VideoExtensions = new(StringComparer.OrdinalIgnoreCase)
         { ".mp4", ".webm" };
     public static readonly HashSet<string> AssetExtensions = new(StringComparer.OrdinalIgnoreCase)
-        { ".fbx", ".blend", ".zip" };
+        { ".fbx", ".blend", ".zip", ".unitypackage" };
 
     public const long MaxImageSize = 50L * 1024 * 1024;   // 50MB
     public const long MaxVideoSize = 500L * 1024 * 1024;  // 500MB
@@ -42,6 +42,7 @@ public static class UploadRules
     public const long MaxFbxSize = 200L * 1024 * 1024;    // 200MB
     public const long MaxBlendSize = 900L * 1024 * 1024;  // 900MB
     public const long MaxZipSize = 900L * 1024 * 1024;    // 900MB
+    public const long MaxUnitypackageSize = 900L * 1024 * 1024; // 900MB
 
     /// <summary>根据扩展名判断类型:image / video / unknown</summary>
     public static string DetectType(string fileName)
@@ -52,7 +53,7 @@ public static class UploadRules
         return "unknown";
     }
 
-    /// <summary>根据扩展名判断 3D 资源类型:fbx / blend / zip / unknown</summary>
+    /// <summary>根据扩展名判断 3D 资源类型:fbx / blend / zip / unitypackage / unknown</summary>
     public static string DetectAssetType(string fileName)
     {
         var ext = Path.GetExtension(fileName);
@@ -66,6 +67,7 @@ public static class UploadRules
         "fbx" => MaxFbxSize,
         "blend" => MaxBlendSize,
         "zip" => MaxZipSize,
+        "unitypackage" => MaxUnitypackageSize,
         _ => long.MaxValue
     };
 }
